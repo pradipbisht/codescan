@@ -112,12 +112,16 @@ export function EditQrForm({ qr }: { qr: EditQrInitial }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="destinationPath">After-scan path</Label>
+              <Label htmlFor="destinationPath">After-scan URL (full)</Label>
               <Input
                 id="destinationPath"
                 name="destinationPath"
                 defaultValue={qr.destinationPath}
+                placeholder="https://dgs.goalkeepers.org.in"
               />
+              <p className="text-xs text-muted-foreground">
+                Full https URL or a path starting with /. UTMs are appended.
+              </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

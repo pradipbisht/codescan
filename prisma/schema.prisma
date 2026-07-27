@@ -29,7 +29,7 @@ model QrCode {
   location         String?
   /// Campaign name, e.g. "Summer Sale 2026"
   campaign         String?
-  /// Where to send the scanner after track (path on our site)
+  /// Where to send the scanner after track (path /offers/... OR full https:// URL)
   destinationPath  String    @default("/")
   /// UTM params applied on redirect (marketing / SEO tools)
   utmSource        String?

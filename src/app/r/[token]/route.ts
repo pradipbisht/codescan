@@ -15,14 +15,10 @@ export async function GET(
     request.headers.get("x-real-ip") ||
     "unknown";
 
-  // 30 scans per IP per token per minute (stops casual spam)
   const limited = rateLimit(`scan:${token}:${ip}`, 30, 60_000);
   if (!limited.ok) {
     return new NextResponse(
-      htmlPage(
-        "Too many requests",
-        "Please wait a minute and try again."
-      ),
+      htmlPage("Too many requests", "Please wait a minute and try again."),
       {
         status: 429,
         headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -74,6 +70,7 @@ export async function GET(
     }),
   ]);
 
+  // Absolute URL (path on CodeScan OR full external e.g. https://dgs.goalkeepers.org.in)
   const target = await buildRedirectUrl({
     destinationPath: qr.destinationPath,
     utmSource: qr.utmSource,
@@ -82,8 +79,7 @@ export async function GET(
     utmContent: qr.utmContent,
   });
 
-  // Relative path + UTMs; host comes from the live request (Vercel or local)
-  return NextResponse.redirect(new URL(target, request.url));
+  return NextResponse.redirect(target);
 }
 
 function htmlPage(title: string, message: string): string {

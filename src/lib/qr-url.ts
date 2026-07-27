@@ -16,10 +16,8 @@ function isLocalHost(host: string): boolean {
 
 /**
  * Origin for QR images — prefers the site the user is actually visiting.
- * That way https://codescan-inky.vercel.app never encodes localhost.
  */
 export async function getAppUrl(): Promise<string> {
-  // 1) Real request host (best on Vercel production)
   try {
     const h = await headers();
     const host = (h.get("x-forwarded-host") || h.get("host") || "").trim();
@@ -30,13 +28,11 @@ export async function getAppUrl(): Promise<string> {
       return stripSlash(`${proto}://${host}`);
     }
 
-    // 2) Env production URL (local dev can still print production QRs)
     const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
     if (fromEnv && !isLocalHost(fromEnv)) {
       return stripSlash(fromEnv);
     }
 
-    // 3) Vercel system env
     const vercelHost =
       process.env.VERCEL_PROJECT_PRODUCTION_URL ||
       process.env.NEXT_PUBLIC_VERCEL_URL ||
@@ -49,13 +45,12 @@ export async function getAppUrl(): Promise<string> {
       return `https://${hostOnly}`;
     }
 
-    // 4) Local browsing only
     if (host) {
       const proto = protoHeader || "http";
       return stripSlash(`${proto}://${host}`);
     }
   } catch {
-    // headers() can throw outside a request — fall through
+    // outside request
   }
 
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
@@ -71,14 +66,69 @@ export async function buildScanUrl(token: string): Promise<string> {
 }
 
 /**
- * Only allow same-site paths for redirect (blocks open redirect attacks).
- * Good: "/offers/summer"  Bad: "https://evil.com"
+ * Normalize user input:
+ * - "/offers/summer" → same-site path
+ * - "https://dgs.goalkeepers.org.in" → full URL
+ * - "dgs.goalkeepers.org.in" → https://dgs.goalkeepers.org.in
  */
+export function normalizeDestination(raw: string): string {
+  let value = raw.trim();
+  if (!value) return "/";
+
+  // Same-site path
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return value;
+  }
+
+  // Protocol-relative //evil.com — reject later
+  if (value.startsWith("//")) {
+    return value;
+  }
+
+  // Bare domain / full host without protocol
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) {
+    value = `https://${value}`;
+  }
+
+  return value;
+}
+
+/**
+ * Safe destinations:
+ * - Path on this app: /offers/summer
+ * - Full https URL: https://dgs.goalkeepers.org.in/...
+ * - http only for localhost (dev)
+ * Blocks javascript:, data:, etc.
+ */
+export function isSafeDestination(dest: string): boolean {
+  const value = dest.trim();
+  if (!value) return false;
+
+  // Same-site path
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    if (value.includes("://")) return false;
+    return true;
+  }
+
+  try {
+    const url = new URL(value);
+    const protocol = url.protocol.toLowerCase();
+
+    if (protocol === "https:") return true;
+
+    if (protocol === "http:") {
+      return isLocalHost(url.hostname);
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/** @deprecated use isSafeDestination */
 export function isSafeDestinationPath(path: string): boolean {
-  if (!path.startsWith("/")) return false;
-  if (path.startsWith("//")) return false;
-  if (path.includes("://")) return false;
-  return true;
+  return isSafeDestination(normalizeDestination(path));
 }
 
 type UtmFields = {
@@ -89,14 +139,26 @@ type UtmFields = {
   utmContent?: string | null;
 };
 
-/** Build redirect target with UTM query params (path + search only) */
+/**
+ * Build final redirect URL (absolute) with UTM query params.
+ * Works for both /paths and https://external.sites
+ */
 export async function buildRedirectUrl(fields: UtmFields): Promise<string> {
-  const path = isSafeDestinationPath(fields.destinationPath)
-    ? fields.destinationPath
-    : "/";
+  const normalized = normalizeDestination(fields.destinationPath);
+  const baseApp = await getAppUrl();
 
-  const base = await getAppUrl();
-  const url = new URL(path, base);
+  let url: URL;
+  try {
+    if (isSafeDestination(normalized) && normalized.startsWith("/")) {
+      url = new URL(normalized, baseApp);
+    } else if (isSafeDestination(normalized)) {
+      url = new URL(normalized);
+    } else {
+      url = new URL("/", baseApp);
+    }
+  } catch {
+    url = new URL("/", baseApp);
+  }
 
   if (fields.utmSource) url.searchParams.set("utm_source", fields.utmSource);
   if (fields.utmMedium) url.searchParams.set("utm_medium", fields.utmMedium);
@@ -105,5 +167,5 @@ export async function buildRedirectUrl(fields: UtmFields): Promise<string> {
   if (fields.utmContent)
     url.searchParams.set("utm_content", fields.utmContent);
 
-  return url.pathname + url.search;
+  return url.toString();
 }

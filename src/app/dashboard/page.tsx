@@ -23,6 +23,8 @@ import { channelLabel } from "@/lib/channels";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
+import { LiveCountsBridge } from "./live-counts";
+
 export const dynamic = "force-dynamic";
 
 type SearchParams = Promise<{
@@ -145,6 +147,8 @@ export default async function DashboardPage({
           </p>
         </div>
 
+        <LiveCountsBridge />
+
         {/* Stats */}
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card size="sm" className="bg-card shadow-sm">
@@ -168,12 +172,15 @@ export default async function DashboardPage({
                 <CardDescription>Total scans</CardDescription>
                 <BarChart3 className="size-4 text-muted-foreground" />
               </div>
-              <CardTitle className="text-3xl tabular-nums">
+              <CardTitle
+                className="text-3xl tabular-nums"
+                data-live-total-scans
+              >
                 {totalScansAll}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">
-              All placements combined
+              All placements combined · live
             </CardContent>
           </Card>
 
@@ -358,7 +365,10 @@ export default async function DashboardPage({
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                           Scans
                         </p>
-                        <p className="text-xl font-semibold tabular-nums leading-none">
+                        <p
+                          className="text-xl font-semibold tabular-nums leading-none"
+                          data-live-count={q.id}
+                        >
                           {q.scanCount}
                         </p>
                       </div>
@@ -371,7 +381,9 @@ export default async function DashboardPage({
                       <dt className="text-muted-foreground">Location</dt>
                       <dd className="truncate">{q.location ?? "—"}</dd>
                       <dt className="text-muted-foreground">Last scan</dt>
-                      <dd>{formatWhen(q.lastScannedAt)}</dd>
+                      <dd data-live-last={q.id}>
+                        {formatWhen(q.lastScannedAt)}
+                      </dd>
                       <dt className="text-muted-foreground">UTM</dt>
                       <dd className="truncate font-mono">
                         {q.utmSource ?? "—"} / {q.utmMedium ?? "—"}

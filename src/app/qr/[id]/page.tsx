@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 
 import { toggleQrActive } from "./actions";
 import { DeleteQrButton } from "./delete-button";
+import { LiveStats } from "./live-stats";
 import { QrShareActions } from "./qr-share-actions";
 
 export const dynamic = "force-dynamic";
@@ -234,36 +235,8 @@ export default async function QrDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Right column — roomy tracking */}
+          {/* Right column — static details */}
           <div className="space-y-6">
-            {/* Big metrics */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Scans · this QR only
-                </p>
-                <p className="mt-2 text-4xl font-semibold tracking-tight tabular-nums">
-                  {qr.scanCount}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Other placements do not count here
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Last scanned
-                </p>
-                <p className="mt-2 text-lg font-semibold tracking-tight">
-                  {formatWhen(qr.lastScannedAt)}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {qr.isActive
-                    ? "Ready to accept scans"
-                    : "Disabled — scans are blocked"}
-                </p>
-              </div>
-            </div>
-
             {/* Scan URL */}
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -286,24 +259,30 @@ export default async function QrDetailPage({ params }: PageProps) {
                   value={qr.isActive ? "Active" : "Disabled"}
                 />
                 <MetaTile label="Campaign" value={qr.campaign ?? "—"} />
-                <MetaTile label="Location / content" value={qr.location ?? "—"} />
                 <MetaTile
-                  label="After-scan page"
+                  label="Location / content"
+                  value={qr.location ?? "—"}
+                />
+                <MetaTile
+                  label="After-scan URL"
                   value={
-                    <Link
-                      href={qr.destinationPath}
-                      className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
+                    <a
+                      href={
+                        qr.destinationPath.startsWith("http")
+                          ? qr.destinationPath
+                          : qr.destinationPath
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-start gap-1 underline-offset-4 hover:underline"
                     >
-                      {qr.destinationPath}
-                      <ExternalLink className="size-3 opacity-60" />
-                    </Link>
+                      <span className="break-all">{qr.destinationPath}</span>
+                      <ExternalLink className="mt-0.5 size-3 shrink-0 opacity-60" />
+                    </a>
                   }
                   mono
                 />
-                <MetaTile
-                  label="Created"
-                  value={formatWhen(qr.createdAt)}
-                />
+                <MetaTile label="Created" value={formatWhen(qr.createdAt)} />
               </div>
             </div>
 
@@ -313,7 +292,7 @@ export default async function QrDetailPage({ params }: PageProps) {
                 Marketing UTMs
               </h2>
               <p className="mb-3 text-xs text-muted-foreground">
-                Appended after scan so analytics tools can attribute print ads.
+                Appended after scan so analytics can attribute print ads.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <MetaTile
@@ -344,7 +323,8 @@ export default async function QrDetailPage({ params }: PageProps) {
               <div>
                 <p className="text-sm font-medium">Manage this QR</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Edit metadata anytime. Delete removes scan history too.
+                  Edit destination/UTMs anytime. Token (printed QR) stays the
+                  same.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -366,57 +346,18 @@ export default async function QrDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Recent scans — full width, airy */}
-        <section className="mt-10">
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">
-                Recent scans
-              </h2>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Only events from this placement’s code
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              Showing {qr.scans.length}
-              {qr.scanCount > qr.scans.length ? ` of ${qr.scanCount}` : ""}
-            </p>
-          </div>
-
-          <Card className="bg-card shadow-sm">
-            <CardContent className="p-0">
-              {qr.scans.length === 0 ? (
-                <div className="px-6 py-14 text-center">
-                  <p className="text-sm font-medium">No scans yet</p>
-                  <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-                    Download the PNG, scan with your phone, then refresh this
-                    page. The count above will increase by 1.
-                  </p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {qr.scans.map((s, i) => (
-                    <li
-                      key={s.id}
-                      className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium tabular-nums text-muted-foreground">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm font-medium tabular-nums">
-                          {formatWhen(s.scannedAt)}
-                        </span>
-                      </div>
-                      <span className="max-w-xl truncate pl-10 text-xs text-muted-foreground sm:pl-0 sm:text-right">
-                        {s.userAgent ?? "Unknown device"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+        {/* Live scan counter micro-UI — no full page refresh */}
+        <section className="mt-10 border-t border-border pt-10">
+          <LiveStats
+            qrId={qr.id}
+            initialCount={qr.scanCount}
+            initialLastScanned={qr.lastScannedAt?.toISOString() ?? null}
+            initialScans={qr.scans.map((s) => ({
+              id: s.id,
+              scannedAt: s.scannedAt.toISOString(),
+              userAgent: s.userAgent,
+            }))}
+          />
         </section>
       </main>
     </div>

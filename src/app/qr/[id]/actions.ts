@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
-import { isSafeDestinationPath } from "@/lib/qr-url";
+import {
+  isSafeDestination,
+  normalizeDestination,
+} from "@/lib/qr-url";
 import { resolveUtmDefaults } from "@/lib/utm";
 
 export async function toggleQrActive(id: string, isActive: boolean) {
@@ -29,8 +32,8 @@ export async function updateQrAction(
   const channel = String(formData.get("channel") || "newspaper").trim();
   const location = String(formData.get("location") || "").trim() || null;
   const campaign = String(formData.get("campaign") || "").trim() || null;
-  let destinationPath = String(
-    formData.get("destinationPath") || "/offers/summer"
+  const destinationRaw = String(
+    formData.get("destinationPath") || "https://dgs.goalkeepers.org.in"
   ).trim();
   const isActive = formData.get("isActive") === "on";
 
@@ -44,12 +47,11 @@ export async function updateQrAction(
   if (!label) return { error: "Name is required." };
   if (!channel) return { error: "Channel is required." };
 
-  if (!destinationPath.startsWith("/")) {
-    destinationPath = `/${destinationPath}`;
-  }
-  if (!isSafeDestinationPath(destinationPath)) {
+  const destinationPath = normalizeDestination(destinationRaw);
+  if (!isSafeDestination(destinationPath)) {
     return {
-      error: "Destination must be a path on this site, like /offers/summer",
+      error:
+        "Use a full https URL (e.g. https://dgs.goalkeepers.org.in) or a path like /offers/summer",
     };
   }
 

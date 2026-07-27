@@ -37,6 +37,9 @@ export default function NewQrPage() {
   const [label, setLabel] = useState("");
   const [campaign, setCampaign] = useState("");
   const [location, setLocation] = useState("");
+  const [destination, setDestination] = useState(
+    "https://dgs.goalkeepers.org.in"
+  );
 
   const preview = useMemo(() => {
     const utm_source = defaultUtmSourceForChannel(channel);
@@ -51,8 +54,9 @@ export default function NewQrPage() {
       : label
         ? slugifyUtm(label)
         : "…";
-    return { utm_source, utm_medium, utm_campaign, utm_content };
-  }, [channel, label, campaign, location]);
+    const base = destination.trim() || "https://dgs.goalkeepers.org.in";
+    return { utm_source, utm_medium, utm_campaign, utm_content, base };
+  }, [channel, label, campaign, location, destination]);
 
   return (
     <main className="mx-auto w-full max-w-md px-4 py-10">
@@ -114,13 +118,32 @@ export default function NewQrPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="destinationPath">After-scan URL (full)</Label>
+              <Input
+                id="destinationPath"
+                name="destinationPath"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="https://dgs.goalkeepers.org.in"
+              />
+              <p className="text-xs text-muted-foreground">
+                Full site URL is best, e.g.{" "}
+                <code className="text-[11px]">
+                  https://dgs.goalkeepers.org.in
+                </code>
+                . Paths like <code className="text-[11px]">/offers/summer</code>{" "}
+                still work. UTMs are appended automatically.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="campaign">Campaign name</Label>
               <Input
                 id="campaign"
                 name="campaign"
                 value={campaign}
                 onChange={(e) => setCampaign(e.target.value)}
-                placeholder="e.g. ts-naio-common-newspaper_print-ad-all_users"
+                placeholder="e.g. newspaper_print_ad_all_users"
               />
               <p className="text-xs text-muted-foreground">
                 Becomes <code>utm_campaign</code> (spaces → underscores).
@@ -144,38 +167,21 @@ export default function NewQrPage() {
                     name="location"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g. ts-naio-common-newspaper_print"
+                    placeholder="e.g. toi_delhi_full_page"
                   />
                   <p className="text-xs text-muted-foreground">
                     Becomes <code>utm_content</code>.
                   </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="destinationPath">After-scan page</Label>
-                  <Input
-                    id="destinationPath"
-                    name="destinationPath"
-                    defaultValue="/offers/summer"
-                    placeholder="/offers/summer"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Path on this site only (starts with /). UTMs are appended.
-                  </p>
-                </div>
               </div>
-            ) : (
-              <input
-                type="hidden"
-                name="destinationPath"
-                value="/offers/summer"
-              />
-            )}
+            ) : null}
 
             <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 font-mono text-xs leading-relaxed break-all text-muted-foreground">
               <p className="mb-1 font-sans text-sm font-medium text-foreground">
-                After scan, user URL will look like:
+                After scan, user lands on:
               </p>
-              /offers/summer?utm_source=
+              <span className="text-foreground">{preview.base}</span>
+              ?utm_source=
               <span className="text-foreground">{preview.utm_source}</span>
               &amp;utm_medium=
               <span className="text-foreground">{preview.utm_medium}</span>
