@@ -17,14 +17,14 @@ export async function createQrAction(
   formData: FormData
 ): Promise<CreateQrState> {
   const label = String(formData.get("label") || "").trim();
-  const channel = String(formData.get("channel") || "poster").trim();
+  const channel = String(formData.get("channel") || "newspaper").trim();
   const location = String(formData.get("location") || "").trim() || null;
   const campaign = String(formData.get("campaign") || "").trim() || null;
   let destinationPath = String(
     formData.get("destinationPath") || "/offers/summer"
   ).trim();
 
-  // Optional manual overrides (usually empty — we auto-fill)
+  // Optional manual overrides (leave empty to auto-fill like TalentSprint print)
   const utmSourceRaw = String(formData.get("utmSource") || "").trim() || null;
   const utmMediumRaw = String(formData.get("utmMedium") || "").trim() || null;
   const utmCampaignRaw =
@@ -44,7 +44,6 @@ export async function createQrAction(
     };
   }
 
-  // Auto UTM: source=channel, medium=offline, campaign/content from text
   const utm = resolveUtmDefaults({
     channel,
     campaign,

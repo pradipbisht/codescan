@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,27 +13,53 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  defaultUtmMediumForChannel,
+  defaultUtmSourceForChannel,
+  slugifyUtm,
+} from "@/lib/utm";
 
 import { createQrAction, type CreateQrState } from "./actions";
 
 const initial: CreateQrState = {};
 
 const CHANNELS = [
-  "hoarding",
-  "poster",
-  "pamphlet",
-  "flyer",
-  "other",
+  { value: "newspaper", label: "Newspaper print" },
+  { value: "flyer", label: "Flyer" },
+  { value: "pamphlet", label: "Pamphlet" },
+  { value: "poster", label: "Poster" },
+  { value: "hoarding", label: "Hoarding" },
+  { value: "other", label: "Other" },
 ] as const;
 
 /**
- * Simple create form: only Label + Channel required.
- * Everything else is optional under "More options".
- * UTMs auto-fill on the server.
+ * Simple create form.
+ * Newspaper print → TalentSprint-style UTMs:
+ *   utm_source=newspaper_print & utm_medium=print & ...
  */
 export default function NewQrPage() {
   const [state, formAction, pending] = useActionState(createQrAction, initial);
   const [showMore, setShowMore] = useState(false);
+  const [channel, setChannel] = useState("newspaper");
+  const [label, setLabel] = useState("");
+  const [campaign, setCampaign] = useState("");
+  const [location, setLocation] = useState("");
+
+  const preview = useMemo(() => {
+    const utm_source = defaultUtmSourceForChannel(channel);
+    const utm_medium = defaultUtmMediumForChannel(channel);
+    const utm_campaign = campaign
+      ? slugifyUtm(campaign)
+      : label
+        ? slugifyUtm(label)
+        : "…";
+    const utm_content = location
+      ? slugifyUtm(location)
+      : label
+        ? slugifyUtm(label)
+        : "…";
+    return { utm_source, utm_medium, utm_campaign, utm_content };
+  }, [channel, label, campaign, location]);
 
   return (
     <main className="mx-auto w-full max-w-md px-4 py-10">
@@ -43,7 +69,9 @@ export default function NewQrPage() {
             Create QR code
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Only a name and channel are required. Rest is automatic.
+            Newspaper print gets{" "}
+            <code className="text-xs">utm_source=newspaper_print</code> +{" "}
+            <code className="text-xs">utm_medium=print</code> automatically.
           </p>
         </div>
         <Button variant="outline" render={<Link href="/dashboard" />}>
@@ -55,8 +83,8 @@ export default function NewQrPage() {
         <CardHeader>
           <CardTitle>New placement</CardTitle>
           <CardDescription>
-            Example: “Mall poster – Gate 2”. Scanners go to /offers/summer with
-            UTMs filled for you.
+            Like TalentSprint newspaper ads: after scan, user lands on your page
+            with UTM tags for analytics.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -68,7 +96,9 @@ export default function NewQrPage() {
                 name="label"
                 required
                 autoFocus
-                placeholder="e.g. Poster – Mall Gate 2"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="e.g. Times of India – full page 27 Jul"
               />
             </div>
 
@@ -78,15 +108,30 @@ export default function NewQrPage() {
                 id="channel"
                 name="channel"
                 required
-                defaultValue="poster"
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
                 className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {CHANNELS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="campaign">Campaign name</Label>
+              <Input
+                id="campaign"
+                name="campaign"
+                value={campaign}
+                onChange={(e) => setCampaign(e.target.value)}
+                placeholder="e.g. ts-naio-common-newspaper_print-ad-all_users"
+              />
+              <p className="text-xs text-muted-foreground">
+                Becomes <code>utm_campaign</code> (spaces → underscores).
+              </p>
             </div>
 
             <button
@@ -100,20 +145,17 @@ export default function NewQrPage() {
             {showMore ? (
               <div className="space-y-4 rounded-lg border border-border p-3">
                 <div className="space-y-2">
-                  <Label htmlFor="location">City / place</Label>
+                  <Label htmlFor="location">Edition / city / content tag</Label>
                   <Input
                     id="location"
                     name="location"
-                    placeholder="Andheri, Mumbai"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="e.g. ts-naio-common-newspaper_print"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="campaign">Campaign name</Label>
-                  <Input
-                    id="campaign"
-                    name="campaign"
-                    placeholder="Summer Sale 2026"
-                  />
+                  <p className="text-xs text-muted-foreground">
+                    Becomes <code>utm_content</code>.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="destinationPath">After-scan page</Label>
@@ -124,19 +166,31 @@ export default function NewQrPage() {
                     placeholder="/offers/summer"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Path on this site only (starts with /).
+                    Path on this site only (starts with /). UTMs are appended.
                   </p>
                 </div>
               </div>
             ) : (
-              // Hidden defaults so form still submits them when collapsed
-              <>
-                <input type="hidden" name="destinationPath" value="/offers/summer" />
-              </>
+              <input
+                type="hidden"
+                name="destinationPath"
+                value="/offers/summer"
+              />
             )}
 
-            {/* UTM always auto on server — no need for user to type */}
-            <input type="hidden" name="utmMedium" value="offline" />
+            <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 font-mono text-xs leading-relaxed break-all text-muted-foreground">
+              <p className="mb-1 font-sans text-sm font-medium text-foreground">
+                After scan, user URL will look like:
+              </p>
+              /offers/summer?utm_source=
+              <span className="text-foreground">{preview.utm_source}</span>
+              &amp;utm_medium=
+              <span className="text-foreground">{preview.utm_medium}</span>
+              &amp;utm_campaign=
+              <span className="text-foreground">{preview.utm_campaign}</span>
+              &amp;utm_content=
+              <span className="text-foreground">{preview.utm_content}</span>
+            </div>
 
             {state.error ? (
               <p className="text-sm text-destructive" role="alert">
