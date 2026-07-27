@@ -1,9 +1,33 @@
-/** Base site URL for encoding into QR images */
+/**
+ * Public site origin used inside QR images.
+ *
+ * Order:
+ * 1. NEXT_PUBLIC_APP_URL (set this on Vercel for production)
+ * 2. VERCEL_URL / related (auto on Vercel servers — no localhost)
+ * 3. localhost only for local `npm run dev`
+ */
 export function getAppUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000"
-  );
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  // Set automatically by Vercel (server runtime + build). Avoids baking localhost into QR PNGs.
+  const vercelHost =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.NEXT_PUBLIC_VERCEL_URL ||
+    process.env.VERCEL_URL;
+
+  if (vercelHost) {
+    const host = vercelHost.replace(/\/$/, "");
+    if (host.startsWith("http://") || host.startsWith("https://")) {
+      return host;
+    }
+    return `https://${host}`;
+  }
+
+  // Local development only
+  return "http://localhost:3000";
 }
 
 /** Full public scan URL put inside the QR image */
