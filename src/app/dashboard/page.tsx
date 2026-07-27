@@ -1,7 +1,16 @@
 import Link from "next/link";
+import {
+  BarChart3,
+  LayoutDashboard,
+  Plus,
+  QrCode,
+  Radio,
+  Sparkles,
+} from "lucide-react";
 
 import { logoutAction } from "@/app/login/actions";
-import { Button } from "@/components/ui/button";
+import { DeleteQrButton } from "@/app/qr/[id]/delete-button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,7 +19,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { isAdminLockEnabled } from "@/lib/admin-auth";
+import { channelLabel } from "@/lib/channels";
 import { prisma } from "@/lib/prisma";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +29,11 @@ type SearchParams = Promise<{
   channel?: string;
   campaign?: string;
   active?: string;
+  q?: string;
 }>;
 
 function formatWhen(date: Date | null) {
-  if (!date) return "never";
+  if (!date) return "Never";
   return date.toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -37,6 +49,7 @@ export default async function DashboardPage({
   const channelFilter = params.channel?.trim() || "";
   const campaignFilter = params.campaign?.trim() || "";
   const activeFilter = params.active?.trim() || "";
+  const search = params.q?.trim().toLowerCase() || "";
 
   const allCodes = await prisma.qrCode.findMany({
     orderBy: { createdAt: "desc" },
@@ -58,6 +71,10 @@ export default async function DashboardPage({
     if (campaignFilter && (q.campaign ?? "") !== campaignFilter) return false;
     if (activeFilter === "yes" && !q.isActive) return false;
     if (activeFilter === "no" && q.isActive) return false;
+    if (search) {
+      const hay = `${q.label} ${q.channel} ${q.location ?? ""} ${q.campaign ?? ""}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
     return true;
   });
 
@@ -73,258 +90,326 @@ export default async function DashboardPage({
     (a, b) => b[1] - a[1]
   )[0];
 
-  const hasFilters = Boolean(channelFilter || campaignFilter || activeFilter);
+  const hasFilters = Boolean(
+    channelFilter || campaignFilter || activeFilter || search
+  );
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            QR Dashboard
+    <div className="min-h-full bg-muted/20">
+      {/* Top bar */}
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
+          <div className="flex items-center gap-2 font-semibold tracking-tight">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <LayoutDashboard className="size-4" />
+            </span>
+            <span className="hidden sm:inline">CodeScan</span>
+            <span className="text-muted-foreground">/</span>
+            <span>Dashboard</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Home
+            </Link>
+            <Link
+              href="/qr/new"
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              <Plus className="size-4" />
+              New QR
+            </Link>
+            {isAdminLockEnabled() ? (
+              <form action={logoutAction}>
+                <Button type="submit" variant="ghost" size="sm">
+                  Log out
+                </Button>
+              </form>
+            ) : null}
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Placement performance
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Each <strong>row</strong> is one physical QR. The{" "}
-            <strong>Scans</strong> column shows how many times{" "}
-            <em>that</em> QR was used.
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Each card is one printed QR.{" "}
+            <strong className="text-foreground">Scans</strong> = how many times
+            that placement was used. Edit metadata anytime — the QR token (and
+            printed image) stays the same.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href="/" />}>
-            Home
-          </Button>
-          <Button render={<Link href="/qr/new" />}>+ New QR</Button>
-          {isAdminLockEnabled() ? (
-            <form action={logoutAction}>
-              <Button type="submit" variant="ghost" size="sm">
-                Log out
-              </Button>
-            </form>
-          ) : null}
+
+        {/* Stats */}
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Card size="sm" className="bg-card shadow-sm">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <CardDescription>Total QR codes</CardDescription>
+                <QrCode className="size-4 text-muted-foreground" />
+              </div>
+              <CardTitle className="text-3xl tabular-nums">
+                {allCodes.length}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">
+              {activeCount} active · {allCodes.length - activeCount} disabled
+            </CardContent>
+          </Card>
+
+          <Card size="sm" className="bg-card shadow-sm">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <CardDescription>Total scans</CardDescription>
+                <BarChart3 className="size-4 text-muted-foreground" />
+              </div>
+              <CardTitle className="text-3xl tabular-nums">
+                {totalScansAll}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">
+              All placements combined
+            </CardContent>
+          </Card>
+
+          <Card size="sm" className="bg-card shadow-sm">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <CardDescription>In this view</CardDescription>
+                <Sparkles className="size-4 text-muted-foreground" />
+              </div>
+              <CardTitle className="text-3xl tabular-nums">
+                {totalScansFiltered}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">
+              {codes.length} QR{codes.length === 1 ? "" : "s"} after filters
+            </CardContent>
+          </Card>
+
+          <Card size="sm" className="bg-card shadow-sm">
+            <CardHeader className="pb-0">
+              <div className="flex items-center justify-between">
+                <CardDescription>Top channel</CardDescription>
+                <Radio className="size-4 text-muted-foreground" />
+              </div>
+              <CardTitle className="truncate text-2xl capitalize">
+                {topChannelEntry
+                  ? channelLabel(topChannelEntry[0])
+                  : "—"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">
+              {topChannelEntry
+                ? `${topChannelEntry[1]} scan${topChannelEntry[1] === 1 ? "" : "s"}`
+                : "No scans yet"}
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {/* Summary cards */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card size="sm">
-          <CardHeader className="pb-0">
-            <CardDescription>Total QR codes</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">
-              {allCodes.length}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            {activeCount} active
-          </CardContent>
-        </Card>
-        <Card size="sm">
-          <CardHeader className="pb-0">
-            <CardDescription>Total scans</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">
-              {totalScansAll}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            All placements combined
-          </CardContent>
-        </Card>
-        <Card size="sm">
-          <CardHeader className="pb-0">
-            <CardDescription>Filtered scans</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">
-              {totalScansFiltered}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            {hasFilters ? `${codes.length} matching codes` : "No filter applied"}
-          </CardContent>
-        </Card>
-        <Card size="sm">
-          <CardHeader className="pb-0">
-            <CardDescription>Top channel</CardDescription>
-            <CardTitle className="truncate text-2xl capitalize">
-              {topChannelEntry?.[0] ?? "—"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
-            {topChannelEntry
-              ? `${topChannelEntry[1]} scan${topChannelEntry[1] === 1 ? "" : "s"}`
-              : "No scans yet"}
-          </CardContent>
-        </Card>
-      </div>
+        {/* Filters */}
+        <Card className="mb-6 bg-card shadow-sm">
+          <CardContent className="pt-(--card-spacing)">
+            <form
+              method="get"
+              action="/dashboard"
+              className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end"
+            >
+              <label className="min-w-40 flex-1 space-y-1 text-sm">
+                <span className="text-muted-foreground">Search</span>
+                <input
+                  name="q"
+                  defaultValue={search}
+                  placeholder="Name, channel, campaign…"
+                  className="block h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                />
+              </label>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>
-            Narrow by channel, campaign, or active status (GET filters — shareable
-            URL).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            method="get"
-            className="flex flex-wrap items-end gap-3"
-            action="/dashboard"
-          >
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Channel</span>
-              <select
-                name="channel"
-                defaultValue={channelFilter}
-                className="block h-8 min-w-36 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="">All channels</option>
-                {channels.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">Channel</span>
+                <select
+                  name="channel"
+                  defaultValue={channelFilter}
+                  className="block h-9 min-w-36 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">All</option>
+                  {channels.map((c) => (
+                    <option key={c} value={c}>
+                      {channelLabel(c)}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Campaign</span>
-              <select
-                name="campaign"
-                defaultValue={campaignFilter}
-                className="block h-8 min-w-40 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="">All campaigns</option>
-                {campaigns.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">Campaign</span>
+                <select
+                  name="campaign"
+                  defaultValue={campaignFilter}
+                  className="block h-9 min-w-40 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">All</option>
+                  {campaigns.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Active</span>
-              <select
-                name="active"
-                defaultValue={activeFilter}
-                className="block h-8 min-w-28 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="">Any</option>
-                <option value="yes">Active only</option>
-                <option value="no">Disabled only</option>
-              </select>
-            </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">Status</span>
+                <select
+                  name="active"
+                  defaultValue={activeFilter}
+                  className="block h-9 min-w-32 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">Any</option>
+                  <option value="yes">Active</option>
+                  <option value="no">Disabled</option>
+                </select>
+              </label>
 
-            <Button type="submit" size="sm">
-              Apply
-            </Button>
-            {hasFilters ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                render={<Link href="/dashboard" />}
-              >
-                Clear
-              </Button>
-            ) : null}
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Which QR was used?</CardTitle>
-          <CardDescription>
-            Look at the <strong>Label</strong> (e.g. “Poster – Mall Gate 2”) and
-            its <strong>Scans</strong> number. If someone scans the pamphlet QR,
-            only the pamphlet row increases — not the hoarding row. Open a row
-            for the QR image, download PNG, and recent scan times.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {codes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {allCodes.length === 0 ? (
-                <>
-                  No QR codes yet.{" "}
-                  <Link
-                    href="/qr/new"
-                    className="underline underline-offset-4"
-                  >
-                    Create one
-                  </Link>
-                  .
-                </>
-              ) : (
-                <>
-                  No codes match these filters.{" "}
+              <div className="flex gap-2">
+                <Button type="submit" size="sm">
+                  Apply
+                </Button>
+                {hasFilters ? (
                   <Link
                     href="/dashboard"
-                    className="underline underline-offset-4"
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" })
+                    )}
                   >
-                    Clear filters
+                    Clear
                   </Link>
-                  .
-                </>
-              )}
-            </p>
-          ) : (
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="pb-2 pr-3 font-medium">Label</th>
-                  <th className="pb-2 pr-3 font-medium">Channel</th>
-                  <th className="pb-2 pr-3 font-medium">Location</th>
-                  <th className="pb-2 pr-3 font-medium">Campaign</th>
-                  <th className="pb-2 pr-3 font-medium">
-                    Scans{" "}
-                    <span className="font-normal text-muted-foreground">
-                      (this QR)
-                    </span>
-                  </th>
-                  <th className="pb-2 pr-3 font-medium">Last scanned</th>
-                  <th className="pb-2 pr-3 font-medium">Active</th>
-                  <th className="pb-2 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                {codes.map((q) => (
-                  <tr key={q.id} className="border-b border-border/60">
-                    <td className="py-3 pr-3 font-medium">{q.label}</td>
-                    <td className="py-3 pr-3 capitalize">{q.channel}</td>
-                    <td className="py-3 pr-3">{q.location ?? "—"}</td>
-                    <td className="py-3 pr-3">{q.campaign ?? "—"}</td>
-                    <td className="py-3 pr-3">
-                      <span className="inline-flex min-w-8 justify-center rounded-md bg-primary/10 px-2 py-0.5 tabular-nums font-semibold">
-                        {q.scanCount}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-3 text-xs text-muted-foreground">
-                      {formatWhen(q.lastScannedAt)}
-                    </td>
-                    <td className="py-3 pr-3">
-                      {q.isActive ? (
-                        <span className="text-emerald-600 dark:text-emerald-400">
-                          yes
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">no</span>
-                      )}
-                    </td>
-                    <td className="py-3 text-right">
+                ) : null}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Empty */}
+        {codes.length === 0 ? (
+          <Card className="bg-card shadow-sm">
+            <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <QrCode className="size-6 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">
+                  {allCodes.length === 0
+                    ? "No QR codes yet"
+                    : "No matches for these filters"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {allCodes.length === 0
+                    ? "Create your first placement QR for a poster or newspaper ad."
+                    : "Try clearing filters or a different search."}
+                </p>
+              </div>
+              <Link
+                href={allCodes.length === 0 ? "/qr/new" : "/dashboard"}
+                className={cn(buttonVariants({ size: "sm" }))}
+              >
+                {allCodes.length === 0 ? "Create QR" : "Clear filters"}
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Mobile / tablet cards */}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {codes.map((q) => (
+                <Card
+                  key={q.id}
+                  className={cn(
+                    "bg-card shadow-sm transition-shadow hover:shadow-md",
+                    !q.isActive && "opacity-75"
+                  )}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <CardTitle className="truncate text-base">
+                          {q.label}
+                        </CardTitle>
+                        <CardDescription className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
+                            {channelLabel(q.channel)}
+                          </span>
+                          {q.isActive ? (
+                            <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-400">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                              Disabled
+                            </span>
+                          )}
+                        </CardDescription>
+                      </div>
+                      <div className="rounded-lg bg-primary/10 px-2.5 py-1 text-center">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                          Scans
+                        </p>
+                        <p className="text-xl font-semibold tabular-nums leading-none">
+                          {q.scanCount}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                      <dt className="text-muted-foreground">Campaign</dt>
+                      <dd className="truncate">{q.campaign ?? "—"}</dd>
+                      <dt className="text-muted-foreground">Location</dt>
+                      <dd className="truncate">{q.location ?? "—"}</dd>
+                      <dt className="text-muted-foreground">Last scan</dt>
+                      <dd>{formatWhen(q.lastScannedAt)}</dd>
+                      <dt className="text-muted-foreground">UTM</dt>
+                      <dd className="truncate font-mono">
+                        {q.utmSource ?? "—"} / {q.utmMedium ?? "—"}
+                      </dd>
+                    </dl>
+
+                    <div className="flex flex-wrap gap-2 border-t border-border pt-3">
                       <Link
                         href={`/qr/${q.id}`}
-                        className="text-primary underline-offset-4 hover:underline"
+                        className={cn(
+                          buttonVariants({ size: "sm" }),
+                          "flex-1 sm:flex-none"
+                        )}
                       >
-                        Open
+                        Open / QR
                       </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
-    </main>
+                      <Link
+                        href={`/qr/${q.id}/edit`}
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" })
+                        )}
+                      >
+                        Edit
+                      </Link>
+                      <DeleteQrButton
+                        id={q.id}
+                        label={q.label}
+                        variant="ghost"
+                        size="sm"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+      </main>
+    </div>
   );
 }

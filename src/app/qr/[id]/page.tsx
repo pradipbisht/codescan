@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { buildScanUrl } from "@/lib/qr-url";
 
 import { toggleQrActive } from "./actions";
+import { DeleteQrButton } from "./delete-button";
 import { QrShareActions } from "./qr-share-actions";
 
 export const dynamic = "force-dynamic";
@@ -80,9 +81,12 @@ export default async function QrDetailPage({ params }: PageProps) {
             {qr.campaign ? ` · ${qr.campaign}` : ""}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" render={<Link href="/dashboard" />}>
             Dashboard
+          </Button>
+          <Button variant="outline" render={<Link href={`/qr/${qr.id}/edit`} />}>
+            Edit
           </Button>
           <Button render={<Link href="/qr/new" />}>New QR</Button>
         </div>
@@ -215,6 +219,17 @@ export default async function QrDetailPage({ params }: PageProps) {
                 {qr.isActive ? "Disable this QR" : "Enable this QR"}
               </Button>
             </form>
+
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                variant="outline"
+                render={<Link href={`/qr/${qr.id}/edit`} />}
+              >
+                Edit details
+              </Button>
+              <DeleteQrButton id={qr.id} label={qr.label} />
+            </div>
           </CardContent>
         </Card>
       </div>

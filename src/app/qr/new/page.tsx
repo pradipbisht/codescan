@@ -19,18 +19,11 @@ import {
   slugifyUtm,
 } from "@/lib/utm";
 
+import { QR_CHANNELS } from "@/lib/channels";
+
 import { createQrAction, type CreateQrState } from "./actions";
 
 const initial: CreateQrState = {};
-
-const CHANNELS = [
-  { value: "newspaper", label: "Newspaper print" },
-  { value: "flyer", label: "Flyer" },
-  { value: "pamphlet", label: "Pamphlet" },
-  { value: "poster", label: "Poster" },
-  { value: "hoarding", label: "Hoarding" },
-  { value: "other", label: "Other" },
-] as const;
 
 /**
  * Simple create form.
@@ -112,7 +105,7 @@ export default function NewQrPage() {
                 onChange={(e) => setChannel(e.target.value)}
                 className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                {CHANNELS.map((c) => (
+                {QR_CHANNELS.map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
                   </option>
