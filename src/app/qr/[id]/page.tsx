@@ -20,9 +20,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { channelLabel } from "@/lib/channels";
-import { prisma } from "@/lib/prisma";
-import { buildScanUrl } from "@/lib/qr-url";
+import { prisma } from "@/lib/db/prisma";
+import { channelLabel } from "@/lib/qr/channels";
+import { buildScanUrl } from "@/lib/qr/url";
 import { cn } from "@/lib/utils";
 
 import { toggleQrActive } from "./actions";

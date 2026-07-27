@@ -7,7 +7,7 @@ import {
   ADMIN_COOKIE,
   expectedAdminToken,
   isAdminLockEnabled,
-} from "@/lib/admin-auth";
+} from "@/lib/auth/admin";
 
 export type LoginState = { error?: string };
 

@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import {
   isSafeDestination,
   normalizeDestination,
-} from "@/lib/qr-url";
-import { resolveUtmDefaults } from "@/lib/utm";
+} from "@/lib/qr/url";
+import { resolveUtmDefaults } from "@/lib/qr/utm";
 
 export async function toggleQrActive(id: string, isActive: boolean) {
   await prisma.qrCode.update({

@@ -1,37 +1,29 @@
-# CodeScan — Docs
+# CodeScan — Documentation (study guide)
 
-Study these in order. Type the code yourself when you can.  
-If you get stuck, tell Grok: **“I can’t do Phase B, please implement it.”**
+Read these **in order**. Each file is one phase or topic.
 
-| # | Doc | Status | What it covers |
-|---|-----|--------|----------------|
-| 0 | [00-what-is-done.md](./00-what-is-done.md) | ✅ Done | What Phase A already built |
-| 1 | [01-phase-b-overview.md](./01-phase-b-overview.md) | 📘 Study | What Phase B is + goals |
-| 2 | [02-phase-b-step-by-step.md](./02-phase-b-step-by-step.md) | ✅ Implemented | Reference steps (app now has this working) |
-| 3 | [03-phase-b-checklist.md](./03-phase-b-checklist.md) | ✅ Test | How to verify — run these checks yourself |
-| 4 | [04-later-phases.md](./04-later-phases.md) | ⏭ Later | Phase D+ overview |
-| 5 | [05-phase-c.md](./05-phase-c.md) | ✅ Done | Phase C marketing polish |
-| 6 | [06-phase-d.md](./06-phase-d.md) | ✅ Done | Phase D handoff + simple form + admin lock |
+| # | File | What you learn |
+|---|------|----------------|
+| 0 | [00-product-overview.md](./00-product-overview.md) | What the app is and why it exists |
+| 1 | [01-folder-structure.md](./01-folder-structure.md) | Every folder/file and what it does |
+| 2 | [02-system-flow.md](./02-system-flow.md) | Full create → scan → count flow |
+| 3 | [03-phase-a-database.md](./03-phase-a-database.md) | Neon + Prisma + models |
+| 4 | [04-phase-b-qr-core.md](./04-phase-b-qr-core.md) | Create QR, scan route, dashboard |
+| 5 | [05-phase-c-marketing.md](./05-phase-c-marketing.md) | UTMs, channels, external landing URL |
+| 6 | [06-phase-d-production.md](./06-phase-d-production.md) | Vercel, env, admin lock, rate limit |
+| 7 | [07-phase-e-live-ui.md](./07-phase-e-live-ui.md) | Live scan polling, edit/delete, UI |
+| 8 | [08-testing-guide.md](./08-testing-guide.md) | How to test without a real campaign |
 
-## How to use this folder
+**Root file:** [`../README.md`](../README.md) — short start only. Details live here.
 
-1. Read **00** so you know what already works.  
-2. Read **01** for the big picture (no code yet).  
-3. Follow **02** step by step — type files yourself.  
-4. Use **03** to test.  
-5. Stuck? Ask Grok to implement Phase B for you.
+---
 
-## Project path
+## Quick map
 
 ```
-C:\Users\ACER\Desktop\codescan
+You create QR  →  Neon saves row  →  PNG encodes /r/{token}
+Someone scans  →  /r/[token] +1   →  redirect to full URL + UTMs
+You watch live →  dashboard/detail auto-refresh counts
 ```
 
-## Quick commands (you already have these)
-
-```powershell
-cd C:\Users\ACER\Desktop\codescan
-npm run dev          # start app → http://localhost:3000
-npm run db:studio    # browse Neon tables
-npm run db:push      # push schema changes (if any)
-```
+Live app: `https://codescan-inky.vercel.app`

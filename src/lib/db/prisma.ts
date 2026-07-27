@@ -7,7 +7,7 @@ import { PrismaNeon } from "@prisma/adapter-neon";
  * - Runtime uses DATABASE_URL (Neon pooled / -pooler hostname recommended).
  * - Migrations use DIRECT_URL via prisma.config.ts.
  *
- * Import: `import { prisma } from "@/lib/prisma"`
+ * Import: `import { prisma } from "@/lib/db/prisma"`
  */
 
 const globalForPrisma = globalThis as unknown as {

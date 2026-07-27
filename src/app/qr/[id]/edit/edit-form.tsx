@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { QR_CHANNELS } from "@/lib/channels";
+import { QR_CHANNELS } from "@/lib/qr/channels";
 import { cn } from "@/lib/utils";
 
 import { updateQrAction, type UpdateQrState } from "../actions";

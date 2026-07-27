@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma";
-import { buildRedirectUrl } from "@/lib/qr-url";
+import { prisma } from "@/lib/db/prisma";
+import { buildRedirectUrl } from "@/lib/qr/url";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(

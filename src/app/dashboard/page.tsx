@@ -12,9 +12,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { isAdminLockEnabled } from "@/lib/admin-auth";
-import { channelLabel } from "@/lib/channels";
-import { prisma } from "@/lib/prisma";
+import { isAdminLockEnabled } from "@/lib/auth/admin";
+import { channelLabel } from "@/lib/qr/channels";
+import { prisma } from "@/lib/db/prisma";
 import { cn } from "@/lib/utils";
 
 import { LiveCountsBridge } from "./live-counts";

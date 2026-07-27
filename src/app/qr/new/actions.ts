@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import {
   isSafeDestination,
   normalizeDestination,
-} from "@/lib/qr-url";
-import { createQrToken } from "@/lib/tokens";
-import { resolveUtmDefaults } from "@/lib/utm";
+} from "@/lib/qr/url";
+import { createQrToken } from "@/lib/qr/tokens";
+import { resolveUtmDefaults } from "@/lib/qr/utm";
 
 export type CreateQrState = {
   error?: string;
