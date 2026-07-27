@@ -1,8 +1,17 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  Calendar,
+  ExternalLink,
+  MapPin,
+  Megaphone,
+  QrCode,
+} from "lucide-react";
 import QRCode from "qrcode";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,8 +19,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { channelLabel } from "@/lib/channels";
 import { prisma } from "@/lib/prisma";
 import { buildScanUrl } from "@/lib/qr-url";
+import { cn } from "@/lib/utils";
 
 import { toggleQrActive } from "./actions";
 import { DeleteQrButton } from "./delete-button";
@@ -24,11 +35,37 @@ type PageProps = {
 };
 
 function formatWhen(date: Date | null) {
-  if (!date) return "never";
+  if (!date) return "Never";
   return date.toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function MetaTile({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        {label}
+      </p>
+      <div
+        className={cn(
+          "mt-2 text-sm break-words text-foreground",
+          mono && "font-mono text-xs leading-relaxed"
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
 }
 
 export default async function QrDetailPage({ params }: PageProps) {
@@ -39,7 +76,7 @@ export default async function QrDetailPage({ params }: PageProps) {
     include: {
       scans: {
         orderBy: { scannedAt: "desc" },
-        take: 10,
+        take: 12,
       },
     },
   });
@@ -48,7 +85,6 @@ export default async function QrDetailPage({ params }: PageProps) {
   const scanUrl = await buildScanUrl(qr.token);
   const isLocalhostQr = scanUrl.includes("localhost");
 
-  // Higher-res PNG for print / WhatsApp / designer handoff
   const qrDataUrl = await QRCode.toDataURL(scanUrl, {
     width: 512,
     margin: 2,
@@ -71,201 +107,318 @@ export default async function QrDetailPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{qr.label}</h1>
-          <p className="mt-1 text-sm capitalize text-muted-foreground">
-            {qr.channel}
-            {qr.location ? ` · ${qr.location}` : ""}
-            {qr.campaign ? ` · ${qr.campaign}` : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href="/dashboard" />}>
+    <div className="min-h-full bg-muted/20">
+      {/* Header */}
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-3 px-4">
+          <Link
+            href="/dashboard"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "gap-1.5"
+            )}
+          >
+            <ArrowLeft className="size-4" />
             Dashboard
-          </Button>
-          <Button variant="outline" render={<Link href={`/qr/${qr.id}/edit`} />}>
-            Edit
-          </Button>
-          <Button render={<Link href="/qr/new" />}>New QR</Button>
-        </div>
-      </div>
-
-      {isLocalhostQr ? (
-        <div
-          className="mb-6 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm"
-          role="alert"
-        >
-          <p className="font-medium text-destructive">
-            This QR points to localhost — phones cannot open it
-          </p>
-          <p className="mt-1 text-muted-foreground">
-            You opened the app on <code className="text-xs">localhost</code>.
-            For a real QR, open{" "}
-            <a
-              className="underline underline-offset-4"
-              href="https://codescan-inky.vercel.app/qr/new"
+          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/qr/${qr.id}/edit`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
-              https://codescan-inky.vercel.app/qr/new
-            </a>
-            , create a <strong>new</strong> QR there, and download that PNG.
-            Old localhost PNGs never work on other devices.
-          </p>
+              Edit
+            </Link>
+            <Link
+              href="/qr/new"
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              New QR
+            </Link>
+          </div>
         </div>
-      ) : (
-        <div className="mb-6 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
-          <p className="font-medium">Will I know which QR was used?</p>
-          <p className="mt-1 text-muted-foreground">
-            <strong>Yes.</strong> This QR has a unique secret link. When
-            someone scans <em>this</em> image, only this row’s count goes up.
-            Check{" "}
-            <Link href="/dashboard" className="underline underline-offset-4">
-              Dashboard → Scans column
-            </Link>{" "}
-            for <strong>{qr.label}</strong> (currently{" "}
-            <span className="tabular-nums font-medium text-foreground">
-              {qr.scanCount}
+      </header>
+
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
+        {/* Title block */}
+        <div className="mb-8">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+              {channelLabel(qr.channel)}
             </span>
-            ).
+            {qr.isActive ? (
+              <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                Active
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                Disabled
+              </span>
+            )}
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {qr.label}
+          </h1>
+          <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            {qr.campaign ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Megaphone className="size-3.5 shrink-0" />
+                {qr.campaign}
+              </span>
+            ) : null}
+            {qr.location ? (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="size-3.5 shrink-0" />
+                {qr.location}
+              </span>
+            ) : null}
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="size-3.5 shrink-0" />
+              Created {formatWhen(qr.createdAt)}
+            </span>
           </p>
         </div>
-      )}
 
-      <div className="grid gap-6 sm:grid-cols-[auto_1fr]">
-        <Card className="items-center">
-          <CardHeader className="w-full">
-            <CardTitle>QR image (share this)</CardTitle>
-            <CardDescription>
-              Download or share the <strong>picture</strong> for posters /
-              pamphlets. The link alone is not the print asset.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qrDataUrl}
-              alt={`QR code for ${qr.label}`}
-              width={320}
-              height={320}
-              className="rounded-lg bg-white p-2 shadow-sm ring-1 ring-border"
-            />
-            <QrShareActions
-              qrDataUrl={qrDataUrl}
-              scanUrl={scanUrl}
-              fileName={fileName}
-              label={qr.label}
-            />
-          </CardContent>
-        </Card>
+        {isLocalhostQr ? (
+          <div
+            className="mb-8 rounded-2xl border border-destructive/30 bg-destructive/10 px-5 py-4 text-sm"
+            role="alert"
+          >
+            <p className="font-medium text-destructive">
+              This QR points to localhost — phones cannot open it
+            </p>
+            <p className="mt-2 leading-relaxed text-muted-foreground">
+              Create and download QRs only from{" "}
+              <a
+                className="font-medium text-foreground underline underline-offset-4"
+                href="https://codescan-inky.vercel.app/qr/new"
+              >
+                codescan-inky.vercel.app
+              </a>
+              . Old localhost PNGs will never work on other devices.
+            </p>
+          </div>
+        ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Tracking details</CardTitle>
-            <CardDescription>
-              Unique token for this placement only — not shared with other QRs.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm">
-            <div>
-              <p className="mb-1 font-medium text-muted-foreground">
-                Scan URL (inside the QR)
+        {/* Main grid: QR | stats + actions */}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr] lg:items-start">
+          {/* QR column */}
+          <Card className="overflow-hidden bg-card shadow-sm">
+            <CardHeader className="border-b border-border pb-4">
+              <div className="flex items-center gap-2">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                  <QrCode className="size-4 text-primary" />
+                </span>
+                <div>
+                  <CardTitle className="text-base">Print this QR</CardTitle>
+                  <CardDescription className="text-xs">
+                    Download the image for posters &amp; newspaper ads
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-5 pt-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                alt={`QR code for ${qr.label}`}
+                width={280}
+                height={280}
+                className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-border"
+              />
+              <QrShareActions
+                qrDataUrl={qrDataUrl}
+                scanUrl={scanUrl}
+                fileName={fileName}
+                label={qr.label}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Right column — roomy tracking */}
+          <div className="space-y-6">
+            {/* Big metrics */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Scans · this QR only
+                </p>
+                <p className="mt-2 text-4xl font-semibold tracking-tight tabular-nums">
+                  {qr.scanCount}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Other placements do not count here
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                  Last scanned
+                </p>
+                <p className="mt-2 text-lg font-semibold tracking-tight">
+                  {formatWhen(qr.lastScannedAt)}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {qr.isActive
+                    ? "Ready to accept scans"
+                    : "Disabled — scans are blocked"}
+                </p>
+              </div>
+            </div>
+
+            {/* Scan URL */}
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Scan URL (encoded in the QR)
               </p>
-              <p className="break-all rounded-lg bg-muted/50 p-2 font-mono text-xs">
+              <p className="mt-3 break-all rounded-xl bg-muted/60 px-3 py-3 font-mono text-xs leading-relaxed">
                 {scanUrl}
               </p>
             </div>
 
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-              <dt className="text-muted-foreground">Scans (this QR only)</dt>
-              <dd className="text-lg tabular-nums font-semibold">
-                {qr.scanCount}
-              </dd>
-
-              <dt className="text-muted-foreground">Last scanned</dt>
-              <dd>{formatWhen(qr.lastScannedAt)}</dd>
-
-              <dt className="text-muted-foreground">Active</dt>
-              <dd>{qr.isActive ? "yes" : "no"}</dd>
-
-              <dt className="text-muted-foreground">Destination</dt>
-              <dd className="font-mono text-xs">
-                <Link
-                  href={qr.destinationPath}
-                  className="underline underline-offset-4"
-                >
-                  {qr.destinationPath}
-                </Link>
-              </dd>
-
-              <dt className="text-muted-foreground">Campaign</dt>
-              <dd>{qr.campaign ?? "—"}</dd>
-
-              <dt className="text-muted-foreground">UTM source</dt>
-              <dd className="font-mono text-xs">{qr.utmSource ?? "—"}</dd>
-
-              <dt className="text-muted-foreground">UTM medium</dt>
-              <dd className="font-mono text-xs">{qr.utmMedium ?? "—"}</dd>
-
-              <dt className="text-muted-foreground">UTM campaign</dt>
-              <dd className="font-mono text-xs">{qr.utmCampaign ?? "—"}</dd>
-
-              <dt className="text-muted-foreground">UTM content</dt>
-              <dd className="font-mono text-xs">{qr.utmContent ?? "—"}</dd>
-            </dl>
-
-            <form action={onToggle}>
-              <Button type="submit" variant="secondary" className="w-full">
-                {qr.isActive ? "Disable this QR" : "Enable this QR"}
-              </Button>
-            </form>
-
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                variant="outline"
-                render={<Link href={`/qr/${qr.id}/edit`} />}
-              >
-                Edit details
-              </Button>
-              <DeleteQrButton id={qr.id} label={qr.label} />
+            {/* Placement */}
+            <div>
+              <h2 className="mb-3 text-sm font-semibold tracking-tight">
+                Placement
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <MetaTile label="Channel" value={channelLabel(qr.channel)} />
+                <MetaTile
+                  label="Status"
+                  value={qr.isActive ? "Active" : "Disabled"}
+                />
+                <MetaTile label="Campaign" value={qr.campaign ?? "—"} />
+                <MetaTile label="Location / content" value={qr.location ?? "—"} />
+                <MetaTile
+                  label="After-scan page"
+                  value={
+                    <Link
+                      href={qr.destinationPath}
+                      className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
+                    >
+                      {qr.destinationPath}
+                      <ExternalLink className="size-3 opacity-60" />
+                    </Link>
+                  }
+                  mono
+                />
+                <MetaTile
+                  label="Created"
+                  value={formatWhen(qr.createdAt)}
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Recent scans for this QR</CardTitle>
-          <CardDescription>
-            Only events from people who used this placement’s code.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {qr.scans.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No scans yet. Download the PNG, open it on your phone camera (or
-              open the scan URL once), then refresh this page.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border text-sm">
-              {qr.scans.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex flex-col gap-0.5 py-2 sm:flex-row sm:items-center sm:justify-between"
+            {/* UTM */}
+            <div>
+              <h2 className="mb-1 text-sm font-semibold tracking-tight">
+                Marketing UTMs
+              </h2>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Appended after scan so analytics tools can attribute print ads.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <MetaTile
+                  label="utm_source"
+                  value={qr.utmSource ?? "—"}
+                  mono
+                />
+                <MetaTile
+                  label="utm_medium"
+                  value={qr.utmMedium ?? "—"}
+                  mono
+                />
+                <MetaTile
+                  label="utm_campaign"
+                  value={qr.utmCampaign ?? "—"}
+                  mono
+                />
+                <MetaTile
+                  label="utm_content"
+                  value={qr.utmContent ?? "—"}
+                  mono
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">Manage this QR</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Edit metadata anytime. Delete removes scan history too.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <form action={onToggle}>
+                  <Button type="submit" variant="secondary" size="sm">
+                    {qr.isActive ? "Disable" : "Enable"}
+                  </Button>
+                </form>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<Link href={`/qr/${qr.id}/edit`} />}
                 >
-                  <span className="tabular-nums">
-                    {formatWhen(s.scannedAt)}
-                  </span>
-                  <span className="max-w-md truncate text-xs text-muted-foreground">
-                    {s.userAgent ?? "unknown device"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-    </main>
+                  Edit details
+                </Button>
+                <DeleteQrButton id={qr.id} label={qr.label} size="sm" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent scans — full width, airy */}
+        <section className="mt-10">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">
+                Recent scans
+              </h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Only events from this placement’s code
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground tabular-nums">
+              Showing {qr.scans.length}
+              {qr.scanCount > qr.scans.length ? ` of ${qr.scanCount}` : ""}
+            </p>
+          </div>
+
+          <Card className="bg-card shadow-sm">
+            <CardContent className="p-0">
+              {qr.scans.length === 0 ? (
+                <div className="px-6 py-14 text-center">
+                  <p className="text-sm font-medium">No scans yet</p>
+                  <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                    Download the PNG, scan with your phone, then refresh this
+                    page. The count above will increase by 1.
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {qr.scans.map((s, i) => (
+                    <li
+                      key={s.id}
+                      className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium tabular-nums text-muted-foreground">
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-medium tabular-nums">
+                          {formatWhen(s.scannedAt)}
+                        </span>
+                      </div>
+                      <span className="max-w-xl truncate pl-10 text-xs text-muted-foreground sm:pl-0 sm:text-right">
+                        {s.userAgent ?? "Unknown device"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    </div>
   );
 }
