@@ -1,0 +1,70 @@
+// CodeScan — Prisma schema (PostgreSQL via Neon)
+// Docs: https://pris.ly/d/prisma-schema
+//
+// Prisma 7: connection URL is NOT in this file.
+// - CLI / migrations → prisma.config.ts (DIRECT_URL)
+// - App runtime     → src/lib/prisma.ts (DATABASE_URL + Neon adapter)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// One row = one physical QR placement (hoarding, poster, pamphlet, etc.)
+// ---------------------------------------------------------------------------
+model QrCode {
+  id               String    @id @default(cuid())
+  /// Long random secret used in public URL: /r/{token}
+  token            String    @unique
+  /// Human label, e.g. "Hoarding – Ring Road"
+  label            String
+  /// Marketing channel: hoarding | poster | pamphlet | flyer | other
+  channel          String
+  /// City / area / venue text
+  location         String?
+  /// Campaign name, e.g. "Summer Sale 2026"
+  campaign         String?
+  /// Where to send the scanner after track (path on our site)
+  destinationPath  String    @default("/")
+  /// UTM params applied on redirect (marketing / SEO tools)
+  utmSource        String?
+  utmMedium        String?   @default("offline")
+  utmCampaign      String?
+  utmContent       String?
+  /// Total successful scans
+  scanCount        Int       @default(0)
+  /// Soft-disable without deleting (wrong print, end of campaign)
+  isActive         Boolean   @default(true)
+  lastScannedAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  scans            QrScan[]
+
+  @@index([channel])
+  @@index([campaign])
+  @@index([isActive])
+  @@map("qr_codes")
+}
+
+// ---------------------------------------------------------------------------
+// One row = one scan event (time-series for marketing analytics)
+// ---------------------------------------------------------------------------
+model QrScan {
+  id         String   @id @default(cuid())
+  qrCodeId   String
+  scannedAt  DateTime @default(now())
+  userAgent  String?
+  referer    String?
+
+  qrCode     QrCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@index([qrCodeId])
+  @@index([scannedAt])
+  @@map("qr_scans")
+}

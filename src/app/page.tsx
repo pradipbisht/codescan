@@ -1,65 +1,141 @@
-import Image from "next/image";
+import Link from "next/link";
+import { BarChart3, QrCode, Sparkles } from "lucide-react";
+
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="flex min-h-full flex-1 flex-col">
+      {/* Top bar */}
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-4">
+          <div className="flex items-center gap-2 font-semibold tracking-tight">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <QrCode className="size-4" />
+            </span>
+            CodeScan
+          </div>
+          <nav className="flex items-center gap-2">
+            <Link
+              href="/dashboard"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Dashboard
+            </Link>
+            <Link
+              href="/qr/new"
+              className={cn(buttonVariants({ size: "sm" }))}
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Create QR
+            </Link>
+          </nav>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      {/* Hero */}
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-12 sm:py-16">
+        <div className="mb-10 max-w-xl">
+          <p className="mb-3 text-sm font-medium text-muted-foreground">
+            Offline QR attribution
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Know which poster or pamphlet brought people in
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+            Create one unique QR per hoarding, poster, or flyer. When someone
+            scans it, your dashboard counts that placement — simple marketing
+            tracking, no login for scanners.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/qr/new" className={cn(buttonVariants({ size: "lg" }))}>
+              Create a QR code
+            </Link>
+            <Link
+              href="/dashboard"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "lg" })
+              )}
+            >
+              Open dashboard
+            </Link>
+          </div>
+        </div>
+
+        {/* Feature cards */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card size="sm" className="bg-card">
+            <CardHeader>
+              <div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-muted">
+                <QrCode className="size-4" />
+              </div>
+              <CardTitle>Create</CardTitle>
+              <CardDescription>
+                Name + channel only. UTMs fill in automatically.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/qr/new"
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                New QR →
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card size="sm" className="bg-card">
+            <CardHeader>
+              <div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-muted">
+                <BarChart3 className="size-4" />
+              </div>
+              <CardTitle>Track</CardTitle>
+              <CardDescription>
+                Each scan adds +1 to that QR. Filter by channel or campaign.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/dashboard"
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Dashboard →
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card size="sm" className="bg-card">
+            <CardHeader>
+              <div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-muted">
+                <Sparkles className="size-4" />
+              </div>
+              <CardTitle>Landing</CardTitle>
+              <CardDescription>
+                Sample summer offer page for after-scan redirects.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/offers/summer"
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                View sample →
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </main>
+
+      <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground">
+        CodeScan · print QR · scan · measure
+      </footer>
     </div>
   );
 }
