@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { ArrowLeft } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/site-header";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QR_CHANNELS } from "@/lib/channels";
+import { cn } from "@/lib/utils";
 
 import { updateQrAction, type UpdateQrState } from "../actions";
 import { DeleteQrButton } from "../delete-button";
@@ -40,28 +43,36 @@ export function EditQrForm({ qr }: { qr: EditQrInitial }) {
   const [state, formAction, pending] = useActionState(boundUpdate, initial);
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 py-10">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
+    <div className="page-shell min-h-full">
+      <SiteHeader active="dashboard" />
+      <main className="mx-auto w-full max-w-lg px-4 py-8 sm:py-10">
+        <Link
+          href={`/qr/${qr.id}`}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "mb-6 -ml-2 gap-1.5 text-muted-foreground"
+          )}
+        >
+          <ArrowLeft className="size-4" />
+          Back to QR
+        </Link>
+
+        <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">Edit QR</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Token stays the same — printed QR images keep working. Changing
-            destination/UTMs only affects the after-scan redirect.
+            Token stays the same — printed QR images keep working. Only
+            redirect/UTM metadata changes.
           </p>
         </div>
-        <Button variant="outline" render={<Link href={`/qr/${qr.id}`} />}>
-          Cancel
-        </Button>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{qr.label}</CardTitle>
-          <CardDescription className="font-mono text-xs break-all">
-            token: {qr.token}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <Card className="border-border/80 bg-card/90 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">{qr.label}</CardTitle>
+            <CardDescription className="font-mono text-xs break-all">
+              token: {qr.token}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="label">Name *</Label>
@@ -182,14 +193,15 @@ export function EditQrForm({ qr }: { qr: EditQrInitial }) {
             </Button>
           </form>
 
-          <div className="mt-6 border-t border-border pt-4">
-            <p className="mb-2 text-xs text-muted-foreground">
-              Danger zone — deletes this QR and its scan history.
-            </p>
-            <DeleteQrButton id={qr.id} label={qr.label} />
-          </div>
-        </CardContent>
-      </Card>
-    </main>
+            <div className="mt-6 border-t border-border pt-4">
+              <p className="mb-2 text-xs text-muted-foreground">
+                Danger zone — deletes this QR and its scan history.
+              </p>
+              <DeleteQrButton id={qr.id} label={qr.label} />
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 }

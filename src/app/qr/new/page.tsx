@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
+import { ArrowLeft, Newspaper } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/site-header";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,23 +15,18 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { QR_CHANNELS } from "@/lib/channels";
 import {
   defaultUtmMediumForChannel,
   defaultUtmSourceForChannel,
   slugifyUtm,
 } from "@/lib/utm";
-
-import { QR_CHANNELS } from "@/lib/channels";
+import { cn } from "@/lib/utils";
 
 import { createQrAction, type CreateQrState } from "./actions";
 
 const initial: CreateQrState = {};
 
-/**
- * Simple create form.
- * Newspaper print → TalentSprint-style UTMs:
- *   utm_source=newspaper_print & utm_medium=print & ...
- */
 export default function NewQrPage() {
   const [state, formAction, pending] = useActionState(createQrAction, initial);
   const [showMore, setShowMore] = useState(false);
@@ -59,150 +56,208 @@ export default function NewQrPage() {
   }, [channel, label, campaign, location, destination]);
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 py-10">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+    <div className="page-shell min-h-full">
+      <SiteHeader active="create" />
+
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
+        <Link
+          href="/dashboard"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "mb-6 -ml-2 gap-1.5 text-muted-foreground"
+          )}
+        >
+          <ArrowLeft className="size-4" />
+          Back to dashboard
+        </Link>
+
+        <div className="mb-8 max-w-xl">
+          <h1 className="text-3xl font-semibold tracking-tight">
             Create QR code
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Newspaper print gets{" "}
-            <code className="text-xs">utm_source=newspaper_print</code> +{" "}
-            <code className="text-xs">utm_medium=print</code> automatically.
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            One QR per physical placement. Newspaper print auto-sets{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+              utm_source=newspaper_print
+            </code>{" "}
+            and{" "}
+            <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
+              utm_medium=print
+            </code>
+            .
           </p>
         </div>
-        <Button variant="outline" render={<Link href="/dashboard" />}>
-          Dashboard
-        </Button>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>New placement</CardTitle>
-          <CardDescription>
-            Like TalentSprint newspaper ads: after scan, user lands on your page
-            with UTM tags for analytics.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={formAction} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="label">Name *</Label>
-              <Input
-                id="label"
-                name="label"
-                required
-                autoFocus
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                placeholder="e.g. Times of India – full page 27 Jul"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="channel">Where is it? *</Label>
-              <select
-                id="channel"
-                name="channel"
-                required
-                value={channel}
-                onChange={(e) => setChannel(e.target.value)}
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                {QR_CHANNELS.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="destinationPath">After-scan URL (full)</Label>
-              <Input
-                id="destinationPath"
-                name="destinationPath"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                placeholder="https://dgs.goalkeepers.org.in"
-              />
-              <p className="text-xs text-muted-foreground">
-                Full site URL is best, e.g.{" "}
-                <code className="text-[11px]">
-                  https://dgs.goalkeepers.org.in
-                </code>
-                . Paths like <code className="text-[11px]">/offers/summer</code>{" "}
-                still work. UTMs are appended automatically.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="campaign">Campaign name</Label>
-              <Input
-                id="campaign"
-                name="campaign"
-                value={campaign}
-                onChange={(e) => setCampaign(e.target.value)}
-                placeholder="e.g. newspaper_print_ad_all_users"
-              />
-              <p className="text-xs text-muted-foreground">
-                Becomes <code>utm_campaign</code> (spaces → underscores).
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-              onClick={() => setShowMore((v) => !v)}
-            >
-              {showMore ? "Hide options" : "More options (optional)"}
-            </button>
-
-            {showMore ? (
-              <div className="space-y-4 rounded-lg border border-border p-3">
+        <div className="grid items-start gap-6 lg:grid-cols-[1fr_0.9fr]">
+          <Card className="border-border/80 bg-card/90 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Placement details</CardTitle>
+              <CardDescription>
+                Required: name + channel + where people should land after scan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={formAction} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="location">Edition / city / content tag</Label>
+                  <Label htmlFor="label">Name *</Label>
                   <Input
-                    id="location"
-                    name="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g. toi_delhi_full_page"
+                    id="label"
+                    name="label"
+                    required
+                    autoFocus
+                    value={label}
+                    onChange={(e) => setLabel(e.target.value)}
+                    placeholder="e.g. TOI full page — 27 Jul"
+                    className="h-10"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="channel">Where is it printed? *</Label>
+                  <select
+                    id="channel"
+                    name="channel"
+                    required
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    {QR_CHANNELS.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="destinationPath">After-scan URL *</Label>
+                  <Input
+                    id="destinationPath"
+                    name="destinationPath"
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    placeholder="https://dgs.goalkeepers.org.in"
+                    className="h-10"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Becomes <code>utm_content</code>.
+                    Full https URL preferred. Paths like{" "}
+                    <code className="text-[11px]">/offers/summer</code> also
+                    work.
                   </p>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="campaign">Campaign name</Label>
+                  <Input
+                    id="campaign"
+                    name="campaign"
+                    value={campaign}
+                    onChange={(e) => setCampaign(e.target.value)}
+                    placeholder="e.g. newspaper_print_ad_all_users"
+                    className="h-10"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+                  onClick={() => setShowMore((v) => !v)}
+                >
+                  {showMore ? "Hide optional fields" : "More options"}
+                </button>
+
+                {showMore ? (
+                  <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-4">
+                    <Label htmlFor="location">Content / edition tag</Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="e.g. toi_delhi_full_page"
+                      className="h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Becomes <code>utm_content</code>.
+                    </p>
+                  </div>
+                ) : null}
+
+                {state.error ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {state.error}
+                  </p>
+                ) : null}
+
+                <Button
+                  type="submit"
+                  disabled={pending}
+                  className="h-10 w-full"
+                >
+                  {pending ? "Creating…" : "Create QR code"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Live preview */}
+          <Card className="border-border/80 bg-card/90 shadow-sm lg:sticky lg:top-20">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Newspaper className="size-4" />
+                </span>
+                <div>
+                  <CardTitle className="text-base">Redirect preview</CardTitle>
+                  <CardDescription className="text-xs">
+                    What the user hits after scanning
+                  </CardDescription>
+                </div>
               </div>
-            ) : null}
-
-            <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 font-mono text-xs leading-relaxed break-all text-muted-foreground">
-              <p className="mb-1 font-sans text-sm font-medium text-foreground">
-                After scan, user lands on:
-              </p>
-              <span className="text-foreground">{preview.base}</span>
-              ?utm_source=
-              <span className="text-foreground">{preview.utm_source}</span>
-              &amp;utm_medium=
-              <span className="text-foreground">{preview.utm_medium}</span>
-              &amp;utm_campaign=
-              <span className="text-foreground">{preview.utm_campaign}</span>
-              &amp;utm_content=
-              <span className="text-foreground">{preview.utm_content}</span>
-            </div>
-
-            {state.error ? (
-              <p className="text-sm text-destructive" role="alert">
-                {state.error}
-              </p>
-            ) : null}
-
-            <Button type="submit" disabled={pending} className="w-full">
-              {pending ? "Creating…" : "Create QR"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </main>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-xl bg-muted/50 px-4 py-3">
+                <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Placement name
+                </p>
+                <p className="mt-1 text-sm font-medium">
+                  {label.trim() || "Your QR name"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-dashed border-border bg-background/60 p-4 font-mono text-[11px] leading-relaxed break-all text-muted-foreground">
+                <span className="text-foreground">{preview.base}</span>
+                <br />
+                ?utm_source=
+                <span className="text-foreground">{preview.utm_source}</span>
+                <br />
+                &amp;utm_medium=
+                <span className="text-foreground">{preview.utm_medium}</span>
+                <br />
+                &amp;utm_campaign=
+                <span className="text-foreground">{preview.utm_campaign}</span>
+                <br />
+                &amp;utm_content=
+                <span className="text-foreground">{preview.utm_content}</span>
+              </div>
+              <ul className="space-y-2 text-xs text-muted-foreground">
+                <li className="flex gap-2">
+                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                  Create on your live domain so phones can open the QR.
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                  Download the PNG from the next screen for print.
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                  Dashboard counts stay live without refresh.
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
   );
 }

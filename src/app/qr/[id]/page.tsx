@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 
+import { SiteHeader } from "@/components/site-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -108,38 +109,31 @@ export default async function QrDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-full bg-muted/20">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-3 px-4">
+    <div className="page-shell min-h-full">
+      <SiteHeader active="dashboard" />
+
+      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/dashboard"
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "gap-1.5"
+              "-ml-2 gap-1.5 text-muted-foreground"
             )}
           >
             <ArrowLeft className="size-4" />
             Dashboard
           </Link>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link
               href={`/qr/${qr.id}/edit`}
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
               Edit
             </Link>
-            <Link
-              href="/qr/new"
-              className={cn(buttonVariants({ size: "sm" }))}
-            >
-              New QR
-            </Link>
           </div>
         </div>
-      </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-10">
         {/* Title block */}
         <div className="mb-8">
           <div className="mb-3 flex flex-wrap items-center gap-2">

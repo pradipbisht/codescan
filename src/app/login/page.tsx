@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { QrCode } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,12 +26,14 @@ function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initial);
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
+    <Card className="w-full max-w-sm border-border/80 bg-card/95 shadow-lg">
+      <CardHeader className="text-center">
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <QrCode className="size-5" />
+        </div>
         <CardTitle>Admin login</CardTitle>
         <CardDescription>
-          Enter the password from <code className="text-xs">ADMIN_PASSWORD</code>{" "}
-          in your env. Public QR scans never need this.
+          Optional lock for dashboard. Public QR scans never need a password.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -46,6 +48,7 @@ function LoginForm() {
               required
               autoFocus
               autoComplete="current-password"
+              className="h-10"
             />
           </div>
           {state.error ? (
@@ -53,7 +56,7 @@ function LoginForm() {
               {state.error}
             </p>
           ) : null}
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button type="submit" className="h-10 w-full" disabled={pending}>
             {pending ? "Checking…" : "Unlock"}
           </Button>
         </form>
@@ -69,8 +72,10 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto flex min-h-full flex-1 items-center justify-center px-4 py-16">
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+    <main className="page-shell flex min-h-full flex-1 items-center justify-center px-4 py-16">
+      <Suspense
+        fallback={<p className="text-sm text-muted-foreground">Loading…</p>}
+      >
         <LoginForm />
       </Suspense>
     </main>

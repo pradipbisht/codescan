@@ -1,15 +1,9 @@
 import Link from "next/link";
-import {
-  BarChart3,
-  LayoutDashboard,
-  Plus,
-  QrCode,
-  Radio,
-  Sparkles,
-} from "lucide-react";
+import { BarChart3, QrCode, Radio, Sparkles } from "lucide-react";
 
 import { logoutAction } from "@/app/login/actions";
 import { DeleteQrButton } from "@/app/qr/[id]/delete-button";
+import { SiteHeader } from "@/components/site-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -97,54 +91,28 @@ export default async function DashboardPage({
   );
 
   return (
-    <div className="min-h-full bg-muted/20">
-      {/* Top bar */}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
-          <div className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <LayoutDashboard className="size-4" />
-            </span>
-            <span className="hidden sm:inline">CodeScan</span>
-            <span className="text-muted-foreground">/</span>
-            <span>Dashboard</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/"
-              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-            >
-              Home
-            </Link>
-            <Link
-              href="/qr/new"
-              className={cn(buttonVariants({ size: "sm" }))}
-            >
-              <Plus className="size-4" />
-              New QR
-            </Link>
-            {isAdminLockEnabled() ? (
-              <form action={logoutAction}>
-                <Button type="submit" variant="ghost" size="sm">
-                  Log out
-                </Button>
-              </form>
-            ) : null}
-          </div>
-        </div>
-      </header>
+    <div className="page-shell min-h-full">
+      <SiteHeader active="dashboard" />
 
       <main className="mx-auto w-full max-w-6xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            Placement performance
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Each card is one printed QR.{" "}
-            <strong className="text-foreground">Scans</strong> = how many times
-            that placement was used. Edit metadata anytime — the QR token (and
-            printed image) stays the same.
-          </p>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Placement performance
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              Each card is one printed QR.{" "}
+              <strong className="text-foreground">Scans</strong> update live —
+              no full page refresh.
+            </p>
+          </div>
+          {isAdminLockEnabled() ? (
+            <form action={logoutAction}>
+              <Button type="submit" variant="outline" size="sm">
+                Log out
+              </Button>
+            </form>
+          ) : null}
         </div>
 
         <LiveCountsBridge />
