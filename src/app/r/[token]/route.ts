@@ -74,7 +74,7 @@ export async function GET(
     }),
   ]);
 
-  const target = buildRedirectUrl({
+  const target = await buildRedirectUrl({
     destinationPath: qr.destinationPath,
     utmSource: qr.utmSource,
     utmMedium: qr.utmMedium,
@@ -82,6 +82,7 @@ export async function GET(
     utmContent: qr.utmContent,
   });
 
+  // Relative path + UTMs; host comes from the live request (Vercel or local)
   return NextResponse.redirect(new URL(target, request.url));
 }
 

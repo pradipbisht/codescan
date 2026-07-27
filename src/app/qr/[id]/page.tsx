@@ -44,7 +44,9 @@ export default async function QrDetailPage({ params }: PageProps) {
   });
   if (!qr) notFound();
 
-  const scanUrl = buildScanUrl(qr.token);
+  const scanUrl = await buildScanUrl(qr.token);
+  const isLocalhostQr = scanUrl.includes("localhost");
+
   // Higher-res PNG for print / WhatsApp / designer handoff
   const qrDataUrl = await QRCode.toDataURL(scanUrl, {
     width: 512,
@@ -86,22 +88,45 @@ export default async function QrDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* How tracking works */}
-      <div className="mb-6 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
-        <p className="font-medium">Will I know which QR was used?</p>
-        <p className="mt-1 text-muted-foreground">
-          <strong>Yes.</strong> This QR has a unique secret link. When someone
-          scans <em>this</em> image, only this row’s count goes up. Check{" "}
-          <Link href="/dashboard" className="underline underline-offset-4">
-            Dashboard → Scans column
-          </Link>{" "}
-          for <strong>{qr.label}</strong> (currently{" "}
-          <span className="tabular-nums font-medium text-foreground">
-            {qr.scanCount}
-          </span>
-          ).
-        </p>
-      </div>
+      {isLocalhostQr ? (
+        <div
+          className="mb-6 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm"
+          role="alert"
+        >
+          <p className="font-medium text-destructive">
+            This QR points to localhost — phones cannot open it
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            You opened the app on <code className="text-xs">localhost</code>.
+            For a real QR, open{" "}
+            <a
+              className="underline underline-offset-4"
+              href="https://codescan-inky.vercel.app/qr/new"
+            >
+              https://codescan-inky.vercel.app/qr/new
+            </a>
+            , create a <strong>new</strong> QR there, and download that PNG.
+            Old localhost PNGs never work on other devices.
+          </p>
+        </div>
+      ) : (
+        <div className="mb-6 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm">
+          <p className="font-medium">Will I know which QR was used?</p>
+          <p className="mt-1 text-muted-foreground">
+            <strong>Yes.</strong> This QR has a unique secret link. When
+            someone scans <em>this</em> image, only this row’s count goes up.
+            Check{" "}
+            <Link href="/dashboard" className="underline underline-offset-4">
+              Dashboard → Scans column
+            </Link>{" "}
+            for <strong>{qr.label}</strong> (currently{" "}
+            <span className="tabular-nums font-medium text-foreground">
+              {qr.scanCount}
+            </span>
+            ).
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-[auto_1fr]">
         <Card className="items-center">
