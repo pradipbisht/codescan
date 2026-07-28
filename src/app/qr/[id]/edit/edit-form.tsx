@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { SiteHeader } from "@/components/site-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -43,8 +42,6 @@ export function EditQrForm({ qr }: { qr: EditQrInitial }) {
   const [state, formAction, pending] = useActionState(boundUpdate, initial);
 
   return (
-    <div className="page-shell min-h-full">
-      <SiteHeader active="dashboard" />
       <main className="mx-auto w-full max-w-lg px-4 py-8 sm:py-10">
         <Link
           href={`/qr/${qr.id}`}
@@ -202,6 +199,5 @@ export function EditQrForm({ qr }: { qr: EditQrInitial }) {
           </CardContent>
         </Card>
       </main>
-    </div>
   );
 }

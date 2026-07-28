@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { SiteHeader } from "@/components/site-header";
 import { prisma } from "@/lib/db/prisma";
 
 import { EditQrForm } from "./edit-form";
@@ -16,21 +17,24 @@ export default async function EditQrPage({ params }: PageProps) {
   if (!qr) notFound();
 
   return (
-    <EditQrForm
-      qr={{
-        id: qr.id,
-        label: qr.label,
-        channel: qr.channel,
-        location: qr.location,
-        campaign: qr.campaign,
-        destinationPath: qr.destinationPath,
-        isActive: qr.isActive,
-        utmSource: qr.utmSource,
-        utmMedium: qr.utmMedium,
-        utmCampaign: qr.utmCampaign,
-        utmContent: qr.utmContent,
-        token: qr.token,
-      }}
-    />
+    <div className="page-shell min-h-full">
+      <SiteHeader active="dashboard" />
+      <EditQrForm
+        qr={{
+          id: qr.id,
+          label: qr.label,
+          channel: qr.channel,
+          location: qr.location,
+          campaign: qr.campaign,
+          destinationPath: qr.destinationPath,
+          isActive: qr.isActive,
+          utmSource: qr.utmSource,
+          utmMedium: qr.utmMedium,
+          utmCampaign: qr.utmCampaign,
+          utmContent: qr.utmContent,
+          token: qr.token,
+        }}
+      />
+    </div>
   );
 }
