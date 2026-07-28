@@ -97,6 +97,13 @@ export default async function DashboardPage({
       <main className="mx-auto w-full max-w-6xl px-4 py-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
+            <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium tracking-wide text-primary uppercase">
+              <span className="relative flex size-1.5">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+              </span>
+              Live dashboard
+            </p>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Placement performance
             </h1>
@@ -106,20 +113,31 @@ export default async function DashboardPage({
               no full page refresh.
             </p>
           </div>
-          {isAdminLockEnabled() ? (
-            <form action={logoutAction}>
-              <Button type="submit" variant="outline" size="sm">
-                Log out
-              </Button>
-            </form>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/qr/new"
+              className={cn(buttonVariants({ size: "sm" }), "shadow-sm")}
+            >
+              Create QR
+            </Link>
+            {isAdminLockEnabled() ? (
+              <form action={logoutAction}>
+                <Button type="submit" variant="outline" size="sm">
+                  Log out
+                </Button>
+              </form>
+            ) : null}
+          </div>
         </div>
 
         <LiveCountsBridge />
 
         {/* Stats */}
         <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Card size="sm" className="bg-card shadow-sm">
+          <Card
+            size="sm"
+            className="border-border/80 bg-card/95 shadow-sm transition hover:shadow-md"
+          >
             <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
                 <CardDescription>Total QR codes</CardDescription>
@@ -134,11 +152,14 @@ export default async function DashboardPage({
             </CardContent>
           </Card>
 
-          <Card size="sm" className="bg-card shadow-sm">
+          <Card
+            size="sm"
+            className="border-border/80 bg-gradient-to-br from-card to-sky-50/80 shadow-sm transition hover:shadow-md dark:to-sky-950/20"
+          >
             <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
                 <CardDescription>Total scans</CardDescription>
-                <BarChart3 className="size-4 text-muted-foreground" />
+                <BarChart3 className="size-4 text-sky-600 dark:text-sky-400" />
               </div>
               <CardTitle
                 className="text-3xl tabular-nums"
@@ -152,7 +173,10 @@ export default async function DashboardPage({
             </CardContent>
           </Card>
 
-          <Card size="sm" className="bg-card shadow-sm">
+          <Card
+            size="sm"
+            className="border-border/80 bg-card/95 shadow-sm transition hover:shadow-md"
+          >
             <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
                 <CardDescription>In this view</CardDescription>
@@ -167,7 +191,10 @@ export default async function DashboardPage({
             </CardContent>
           </Card>
 
-          <Card size="sm" className="bg-card shadow-sm">
+          <Card
+            size="sm"
+            className="border-border/80 bg-card/95 shadow-sm transition hover:shadow-md"
+          >
             <CardHeader className="pb-0">
               <div className="flex items-center justify-between">
                 <CardDescription>Top channel</CardDescription>

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CodeScan — Offline QR Attribution",
   description:
-    "Create trackable QR codes for hoardings, posters, and pamphlets.",
+    "Track which newspaper, poster, pamphlet, or hoarding actually drives visits. Live scan counts, any destination website, UTM-ready.",
 };
 
 export default function RootLayout({
