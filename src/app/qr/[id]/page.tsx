@@ -88,6 +88,8 @@ export default async function QrDetailPage({ params }: PageProps) {
   const appUrl = await getAppUrl();
   const isLocalhostQr = scanUrl.includes("localhost");
   const isVercelQr = isVercelAppHost(scanUrl);
+  const isBrokenEnvQr =
+    /NEXT_PUBLIC_/i.test(scanUrl) || scanUrl.includes("APP_URL=");
 
   const qrDataUrl = await QRCode.toDataURL(scanUrl, {
     width: 512,
@@ -175,7 +177,40 @@ export default async function QrDetailPage({ params }: PageProps) {
           </p>
         </div>
 
-        {isLocalhostQr ? (
+        {isBrokenEnvQr ? (
+          <div
+            className="mb-8 rounded-2xl border border-destructive/30 bg-destructive/10 px-5 py-4 text-sm"
+            role="alert"
+          >
+            <p className="font-medium text-destructive">
+              Broken NEXT_PUBLIC_APP_URL — QR will not open any website
+            </p>
+            <p className="mt-2 leading-relaxed text-muted-foreground">
+              On Vercel → Settings → Environment Variables, the{" "}
+              <strong>value</strong> must be only the URL, not the variable name:
+            </p>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-muted-foreground">
+              <li>
+                Wrong:{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  NEXT_PUBLIC_APP_URL=&quot;https://codescan-inky.vercel.app&quot;
+                </code>
+              </li>
+              <li>
+                Right:{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  https://codescan-inky.vercel.app
+                </code>{" "}
+                (or your custom domain)
+              </li>
+            </ul>
+            <p className="mt-2 leading-relaxed text-muted-foreground">
+              Save, redeploy, refresh this page, then re-download the QR PNG.
+            </p>
+          </div>
+        ) : null}
+
+        {isLocalhostQr && !isBrokenEnvQr ? (
           <div
             className="mb-8 rounded-2xl border border-destructive/30 bg-destructive/10 px-5 py-4 text-sm"
             role="alert"
@@ -198,7 +233,7 @@ export default async function QrDetailPage({ params }: PageProps) {
           </div>
         ) : null}
 
-        {isVercelQr && !isLocalhostQr ? (
+        {isVercelQr && !isLocalhostQr && !isBrokenEnvQr ? (
           <div
             className="mb-8 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm"
             role="status"

@@ -26,36 +26,86 @@ export function isVercelAppHost(urlOrHost: string): boolean {
   }
 }
 
-function normalizeOrigin(raw: string): string {
-  const trimmed = stripSlash(raw.trim());
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return trimmed;
+/**
+ * Sanitize NEXT_PUBLIC_APP_URL (and similar) so a mis-copied env never becomes:
+ *   https://NEXT_PUBLIC_APP_URL="https://codescan-inky.vercel.app"
+ *
+ * Accepts:
+ *   https://go.example.com
+ *   go.example.com
+ *   "https://go.example.com"
+ *   NEXT_PUBLIC_APP_URL=https://go.example.com
+ *   NEXT_PUBLIC_APP_URL="https://go.example.com"
+ */
+export function sanitizeAppOrigin(raw: string): string | null {
+  let value = raw.trim();
+  if (!value) return null;
+
+  // Strip accidental "NAME=..." if the whole assignment was pasted as the value
+  value = value.replace(/^NEXT_PUBLIC_APP_URL\s*=\s*/i, "");
+  value = value.replace(/^APP_URL\s*=\s*/i, "");
+
+  // Strip wrapping quotes
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1).trim();
   }
-  return `https://${trimmed}`;
+
+  // One more pass if nested: NEXT_PUBLIC_APP_URL="https://..."
+  value = value.replace(/^NEXT_PUBLIC_APP_URL\s*=\s*/i, "").trim();
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    value = value.slice(1, -1).trim();
+  }
+
+  if (!value) return null;
+
+  // Reject values that still look like an env key, not a host
+  if (/^NEXT_PUBLIC_/i.test(value) || value.includes("=")) {
+    return null;
+  }
+
+  if (!/^https?:\/\//i.test(value)) {
+    value = `https://${value}`;
+  }
+
+  try {
+    const url = new URL(value);
+    if (!url.hostname || url.hostname.toLowerCase().includes("next_public")) {
+      return null;
+    }
+    // Origin only (no path/query) — QR base is always site root + /r/token
+    return stripSlash(url.origin);
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Canonical public origin for QR images and scan links.
  *
  * Priority:
- * 1. NEXT_PUBLIC_APP_URL (set this to your custom domain — never *.vercel.app for print)
+ * 1. NEXT_PUBLIC_APP_URL (custom domain preferred — not *.vercel.app for print)
  * 2. Current request host when not localhost
  * 3. Localhost fallback for dev
- *
- * We intentionally do NOT auto-prefer VERCEL_URL so printed QRs are not
- * baked to codescan-xxx.vercel.app when a custom domain is configured.
  */
 export async function getAppUrl(): Promise<string> {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL;
   if (fromEnv) {
-    // Prefer explicit env even for localhost (dev), so QR base is predictable
-    return normalizeOrigin(fromEnv);
+    const cleaned = sanitizeAppOrigin(fromEnv);
+    if (cleaned) return cleaned;
   }
 
   try {
     const h = await headers();
     const host = (h.get("x-forwarded-host") || h.get("host") || "").trim();
-    const protoHeader = (h.get("x-forwarded-proto") || "").split(",")[0]?.trim();
+    const protoHeader = (h.get("x-forwarded-proto") || "")
+      .split(",")[0]
+      ?.trim();
 
     if (host && !isLocalHost(host)) {
       const proto = protoHeader === "http" ? "https" : protoHeader || "https";
