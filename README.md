@@ -2,7 +2,7 @@
 
 Track which **printed QR** (newspaper, poster, pamphlet, hoarding) brought people to your site.
 
-Live: [codescan-inky.vercel.app](https://codescan-inky.vercel.app)
+Scan links look like: `https://YOUR-DOMAIN/r/{token}` → count → redirect to any destination site.
 
 ---
 
@@ -18,7 +18,7 @@ Live: [codescan-inky.vercel.app](https://codescan-inky.vercel.app)
 | [docs/03-phase-a-database.md](./docs/03-phase-a-database.md) | Neon + Prisma |
 | [docs/04-phase-b-qr-core.md](./docs/04-phase-b-qr-core.md) | Core QR features |
 | [docs/05-phase-c-marketing.md](./docs/05-phase-c-marketing.md) | UTMs + full URLs |
-| [docs/06-phase-d-production.md](./docs/06-phase-d-production.md) | Vercel / env |
+| [docs/06-phase-d-production.md](./docs/06-phase-d-production.md) | Deploy / custom domain |
 | [docs/07-phase-e-live-ui.md](./docs/07-phase-e-live-ui.md) | Live counts, edit/delete |
 | [docs/08-testing-guide.md](./docs/08-testing-guide.md) | How to test |
 
@@ -35,7 +35,19 @@ npm run dev
 
 Open http://localhost:3000  
 
-For **phone-ready QR images**, create them on the **deployed** site, not localhost.
+### Custom domain (no `*.vercel.app` in the scanner)
+
+1. Add a domain in Vercel (e.g. `go.goalkeepers.org.in`).
+2. Point DNS as Vercel instructs.
+3. Set env (Vercel + local `.env`):
+
+```bash
+NEXT_PUBLIC_APP_URL=https://go.goalkeepers.org.in
+```
+
+4. Redeploy, then **re-download** QR PNGs (old images still encode the old host).
+
+Destination per QR can be any website; only the **scan** host comes from `NEXT_PUBLIC_APP_URL`.
 
 ---
 

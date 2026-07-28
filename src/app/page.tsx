@@ -56,8 +56,12 @@ export default function Home() {
               </Link>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              Tip: always create print QRs on your live Vercel URL so phones can
-              open them.
+              Tip: set{" "}
+              <code className="rounded bg-muted px-1 py-0.5">
+                NEXT_PUBLIC_APP_URL
+              </code>{" "}
+              to your custom domain so printed QRs never show a *.vercel.app
+              link.
             </p>
           </div>
 

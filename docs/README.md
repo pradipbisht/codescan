@@ -26,4 +26,4 @@ Someone scans  →  /r/[token] +1   →  redirect to full URL + UTMs
 You watch live →  dashboard/detail auto-refresh counts
 ```
 
-Live app: `https://codescan-inky.vercel.app`
+Public scan base: value of `NEXT_PUBLIC_APP_URL` (use a custom domain, not `*.vercel.app`)

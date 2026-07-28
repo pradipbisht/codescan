@@ -2,16 +2,16 @@
 
 ## Setup
 
-1. App live: `https://codescan-inky.vercel.app`  
-2. Env set on Vercel (DB + `NEXT_PUBLIC_APP_URL`)  
-3. Browser on **that domain** (not localhost) for print tests  
+1. App live on your domain (or local for UI-only tests)  
+2. Env set: DB + `NEXT_PUBLIC_APP_URL=https://YOUR-DOMAIN`  
+3. For print/phone tests: browser on that domain, not localhost  
 
 ## Test 1 — Create
 
 1. Open `/qr/new`  
 2. Name: `Test phone 1`  
 3. Channel: Newspaper print  
-4. After-scan: `https://dgs.goalkeepers.org.in`  
+4. After-scan: `https://goalkeepers.org.in` (or any https site)  
 5. Create  
 
 ## Test 2 — URL inside QR
@@ -19,10 +19,11 @@
 On detail page, scan URL must be:
 
 ```
-https://codescan-inky.vercel.app/r/........
+https://YOUR-DOMAIN/r/........
 ```
 
-If you see `localhost` → wrong host when creating.
+- If you see `localhost` → wrong host for phone tests  
+- If you see `*.vercel.app` → set custom domain + `NEXT_PUBLIC_APP_URL`, redeploy, re-download  
 
 ## Test 3 — Scan without print
 
@@ -31,44 +32,20 @@ If you see `localhost` → wrong host when creating.
 
 Expect:
 
-1. Land on goalkeepers (or your URL) with `utm_…` in address bar  
+1. Land on destination with `utm_…` in address bar  
 2. Detail page **Scans** jumps without refresh (Live)  
 3. Dashboard count for that card +1  
 
 ## Test 4 — Which QR?
 
 1. Create QR A and QR B  
-2. Scan only B twice  
-3. Dashboard: A = 0 (or old), B = +2  
+2. Scan each  
+3. Counts must increase on the correct card only  
 
-## Test 5 — Edit destination
+## Test 5 — Other websites as destination
 
-1. Edit QR → change after-scan URL  
-2. Scan again → new landing  
-3. Same PNG still works (token unchanged)  
+1. Create QR with after-scan `https://example.com`  
+2. Scan → lands on example.com (+ UTMs)  
+3. Count still on CodeScan for that token  
 
-## Test 6 — Disable / delete
-
-1. Disable → scan link shows disabled  
-2. Delete → row gone, old token 404  
-
-## SQL check (optional)
-
-Neon SQL editor:
-
-```sql
-SELECT label, channel, "scanCount", "destinationPath", "lastScannedAt"
-FROM qr_codes
-ORDER BY "createdAt" DESC;
-```
-
-## Pass criteria
-
-| Check | Pass |
-|-------|------|
-| Live domain in QR URL | Yes |
-| External redirect + UTMs | Yes |
-| Count only for scanned QR | Yes |
-| Live UI updates | Yes without F5 |
-
-← Back to [docs index](./README.md)
+→ Back: [docs/README.md](./README.md)

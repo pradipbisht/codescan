@@ -5,7 +5,7 @@ function stripSlash(url: string): string {
 }
 
 function isLocalHost(host: string): boolean {
-  const h = host.toLowerCase();
+  const h = host.toLowerCase().replace(/^https?:\/\//, "");
   return (
     h.includes("localhost") ||
     h.startsWith("127.0.0.1") ||
@@ -14,10 +14,44 @@ function isLocalHost(host: string): boolean {
   );
 }
 
+/** True for default Vercel preview/production hosts (not a custom domain). */
+export function isVercelAppHost(urlOrHost: string): boolean {
+  try {
+    const host = urlOrHost.includes("://")
+      ? new URL(urlOrHost).hostname
+      : urlOrHost.split("/")[0] ?? urlOrHost;
+    return host.toLowerCase().endsWith(".vercel.app");
+  } catch {
+    return urlOrHost.toLowerCase().includes(".vercel.app");
+  }
+}
+
+function normalizeOrigin(raw: string): string {
+  const trimmed = stripSlash(raw.trim());
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
 /**
- * Origin for QR images — prefers the site the user is actually visiting.
+ * Canonical public origin for QR images and scan links.
+ *
+ * Priority:
+ * 1. NEXT_PUBLIC_APP_URL (set this to your custom domain — never *.vercel.app for print)
+ * 2. Current request host when not localhost
+ * 3. Localhost fallback for dev
+ *
+ * We intentionally do NOT auto-prefer VERCEL_URL so printed QRs are not
+ * baked to codescan-xxx.vercel.app when a custom domain is configured.
  */
 export async function getAppUrl(): Promise<string> {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (fromEnv) {
+    // Prefer explicit env even for localhost (dev), so QR base is predictable
+    return normalizeOrigin(fromEnv);
+  }
+
   try {
     const h = await headers();
     const host = (h.get("x-forwarded-host") || h.get("host") || "").trim();
@@ -28,38 +62,18 @@ export async function getAppUrl(): Promise<string> {
       return stripSlash(`${proto}://${host}`);
     }
 
-    const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-    if (fromEnv && !isLocalHost(fromEnv)) {
-      return stripSlash(fromEnv);
-    }
-
-    const vercelHost =
-      process.env.VERCEL_PROJECT_PRODUCTION_URL ||
-      process.env.NEXT_PUBLIC_VERCEL_URL ||
-      process.env.VERCEL_URL;
-    if (vercelHost) {
-      const hostOnly = stripSlash(vercelHost);
-      if (hostOnly.startsWith("http://") || hostOnly.startsWith("https://")) {
-        return hostOnly;
-      }
-      return `https://${hostOnly}`;
-    }
-
     if (host) {
       const proto = protoHeader || "http";
       return stripSlash(`${proto}://${host}`);
     }
   } catch {
-    // outside request
+    // outside request (build / scripts)
   }
-
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (fromEnv) return stripSlash(fromEnv);
 
   return "http://localhost:3000";
 }
 
-/** Full public scan URL put inside the QR image */
+/** Full public scan URL put inside the QR image: {origin}/r/{token} */
 export async function buildScanUrl(token: string): Promise<string> {
   const base = await getAppUrl();
   return `${base}/r/${token}`;

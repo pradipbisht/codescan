@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { prisma } from "@/lib/db/prisma";
 import { channelLabel } from "@/lib/qr/channels";
-import { buildScanUrl } from "@/lib/qr/url";
+import { buildScanUrl, getAppUrl, isVercelAppHost } from "@/lib/qr/url";
 import { cn } from "@/lib/utils";
 
 import { toggleQrActive } from "./actions";
@@ -85,7 +85,9 @@ export default async function QrDetailPage({ params }: PageProps) {
   if (!qr) notFound();
 
   const scanUrl = await buildScanUrl(qr.token);
+  const appUrl = await getAppUrl();
   const isLocalhostQr = scanUrl.includes("localhost");
+  const isVercelQr = isVercelAppHost(scanUrl);
 
   const qrDataUrl = await QRCode.toDataURL(scanUrl, {
     width: 512,
@@ -182,14 +184,43 @@ export default async function QrDetailPage({ params }: PageProps) {
               This QR points to localhost — phones cannot open it
             </p>
             <p className="mt-2 leading-relaxed text-muted-foreground">
-              Create and download QRs only from{" "}
-              <a
-                className="font-medium text-foreground underline underline-offset-4"
-                href="https://codescan-inky.vercel.app/qr/new"
-              >
-                codescan-inky.vercel.app
-              </a>
-              . Old localhost PNGs will never work on other devices.
+              Set{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                NEXT_PUBLIC_APP_URL
+              </code>{" "}
+              to your public HTTPS domain (e.g.{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                https://go.goalkeepers.org.in
+              </code>
+              ), deploy, then create/download QRs again. Old localhost PNGs will
+              never work on other devices.
+            </p>
+          </div>
+        ) : null}
+
+        {isVercelQr && !isLocalhostQr ? (
+          <div
+            className="mb-8 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm"
+            role="status"
+          >
+            <p className="font-medium text-amber-900 dark:text-amber-200">
+              Scan URL still uses a Vercel default domain
+            </p>
+            <p className="mt-2 leading-relaxed text-muted-foreground">
+              Add a custom domain in Vercel (e.g.{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                go.goalkeepers.org.in
+              </code>
+              ), set{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                NEXT_PUBLIC_APP_URL=https://go.goalkeepers.org.in
+              </code>{" "}
+              on the project, redeploy, then re-download this QR so the image
+              encodes your brand domain. Tracking still works either way.
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Current public base:{" "}
+              <span className="font-mono text-foreground">{appUrl}</span>
             </p>
           </div>
         ) : null}

@@ -28,14 +28,14 @@ Browser: GET /qr/[id]
         4. LiveStats polls /api/qr/[id]/live every 3s
 ```
 
-**Important:** PNG bakes the URL at display time.  
-Create on **Vercel domain**, not localhost, for real phones.
+**Important:** PNG bakes the URL at display time from `NEXT_PUBLIC_APP_URL`.  
+Use your **custom domain**, not localhost / `*.vercel.app`, for print QRs.
 
 ## C. Public scan (anyone)
 
 ```
 Phone scans PNG
-    → opens https://codescan-inky.vercel.app/r/TOKEN
+    → opens https://YOUR-DOMAIN/r/TOKEN
 
 GET /r/[token]
     → src/app/r/[token]/route.ts
