@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BarChart3,
   Link2,
+  Lock,
   QrCode,
   Sparkles,
   Zap,
@@ -17,6 +18,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  isAdminAuthenticated,
+  isAdminLockEnabled,
+} from "@/lib/auth/admin";
 import { prisma } from "@/lib/db/prisma";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +29,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Public homepage: aggregate totals only.
- * Placement names, destinations, campaigns, and scan logs stay on /dashboard.
+ * "Print · scan · measure" + admin CTAs only for password holders.
  */
 async function loadPublicTotals() {
   try {
@@ -52,6 +57,9 @@ async function loadPublicTotals() {
 
 export default async function Home() {
   const data = await loadPublicTotals();
+  const locked = isAdminLockEnabled();
+  const authed = await isAdminAuthenticated();
+  const showAdmin = !locked || authed;
 
   return (
     <div className="page-shell flex min-h-full flex-1 flex-col">
@@ -87,33 +95,49 @@ export default async function Home() {
               </h1>
 
               <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Create a unique QR per placement. When someone scans, your
-                private dashboard counts that asset — then visitors land on any
-                website you choose, with UTMs for marketing tools.
+                Trackable QR codes for print campaigns. Aggregate totals are
+                public; placement research and the print · scan · measure tools
+                stay behind admin login.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  href="/qr/new"
-                  className={cn(
-                    buttonVariants({ size: "lg" }),
-                    "shadow-md shadow-primary/15"
-                  )}
-                >
-                  Create a QR code
-                  <ArrowRight className="size-4" />
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "lg" })
-                  )}
-                >
-                  Open dashboard
-                </Link>
+                {showAdmin ? (
+                  <>
+                    <Link
+                      href="/qr/new"
+                      className={cn(
+                        buttonVariants({ size: "lg" }),
+                        "shadow-md shadow-primary/15"
+                      )}
+                    >
+                      Create a QR code
+                      <ArrowRight className="size-4" />
+                    </Link>
+                    <Link
+                      href="/dashboard"
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "lg" })
+                      )}
+                    >
+                      Open dashboard
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href="/login?next=/dashboard"
+                    className={cn(
+                      buttonVariants({ size: "lg" }),
+                      "shadow-md shadow-primary/15"
+                    )}
+                  >
+                    <Lock className="size-4" />
+                    Admin login
+                    <ArrowRight className="size-4" />
+                  </Link>
+                )}
               </div>
 
-              {/* Public totals only — no placement names or destinations */}
+              {/* Public totals only */}
               <div className="mt-10 grid grid-cols-3 gap-3">
                 {[
                   {
@@ -148,7 +172,6 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Generic product preview — not real campaign data */}
             <div className="relative mx-auto w-full max-w-md">
               <div
                 aria-hidden
@@ -163,10 +186,10 @@ export default async function Home() {
                     </span>
                     <div>
                       <CardTitle className="text-base">
-                        Private research dashboard
+                        Private research tools
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Placement names & destinations stay behind login
+                        Print · scan · measure requires admin password
                       </CardDescription>
                     </div>
                   </div>
@@ -191,27 +214,37 @@ export default async function Home() {
                     </div>
                   </div>
                   <div className="rounded-xl border border-dashed border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-                    Public pages show totals only. Open the dashboard to see
-                    which poster, campaign, or city performed — that detail is
-                    for your research, not the public site.
+                    Public site shows totals only. Dashboard, create QR, and
+                    placement research stay locked for password holders.
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                       Totals public
                     </span>
                     <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs">
-                      Details private
+                      Tools private
                     </span>
                   </div>
                   <Link
-                    href="/dashboard"
+                    href={
+                      showAdmin ? "/dashboard" : "/login?next=/dashboard"
+                    }
                     className={cn(
                       buttonVariants({ size: "sm" }),
                       "w-full shadow-sm"
                     )}
                   >
-                    Go to private dashboard
-                    <ArrowRight className="size-3.5" />
+                    {showAdmin ? (
+                      <>
+                        Go to dashboard
+                        <ArrowRight className="size-3.5" />
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="size-3.5" />
+                        Admin login
+                      </>
+                    )}
                   </Link>
                 </CardContent>
               </Card>
@@ -219,80 +252,85 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── How it works ─────────────────────────────────────── */}
-        <section className="mt-16">
-          <div className="mb-6">
-            <p className="text-xs font-medium tracking-wide text-primary uppercase">
-              How it works
-            </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
-              Print · scan · measure
-            </h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                icon: QrCode,
-                step: "01",
-                title: "Create",
-                body: "Name the placement, pick a channel, set any after-scan website. UTMs fill in for print.",
-                href: "/qr/new",
-                cta: "New QR",
-              },
-              {
-                icon: Link2,
-                step: "02",
-                title: "Print & place",
-                body: "Download the PNG for newspapers, posters, pamphlets, or hoardings.",
-                href: "/dashboard",
-                cta: "Your QRs",
-              },
-              {
-                icon: BarChart3,
-                step: "03",
-                title: "Measure privately",
-                body: "Each scan increments the right QR. Detailed performance stays on your dashboard.",
-                href: "/dashboard",
-                cta: "Dashboard",
-              },
-            ].map((item) => (
-              <Card
-                key={item.step}
-                className="group border-border/80 bg-card/90 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <CardHeader>
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
-                      <item.icon className="size-5" />
+        {/* ── Print · scan · measure — password holders only ── */}
+        {showAdmin ? (
+          <section className="mt-16">
+            <div className="mb-6">
+              <p className="text-xs font-medium tracking-wide text-primary uppercase">
+                Admin only
+              </p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
+                Print · scan · measure
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Only visible when you are logged in with the admin password.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                {
+                  icon: QrCode,
+                  step: "01",
+                  title: "Create",
+                  body: "Name the placement, pick a channel, set any after-scan website. UTMs fill in for print.",
+                  href: "/qr/new",
+                  cta: "New QR",
+                },
+                {
+                  icon: Link2,
+                  step: "02",
+                  title: "Print & place",
+                  body: "Download the PNG for newspapers, posters, pamphlets, or hoardings.",
+                  href: "/dashboard",
+                  cta: "Your QRs",
+                },
+                {
+                  icon: BarChart3,
+                  step: "03",
+                  title: "Measure privately",
+                  body: "Each scan increments the right QR. Detailed performance stays on your dashboard.",
+                  href: "/dashboard",
+                  cta: "Dashboard",
+                },
+              ].map((item) => (
+                <Card
+                  key={item.step}
+                  className="group border-border/80 bg-card/90 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <CardHeader>
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                        <item.icon className="size-5" />
+                      </div>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {item.step}
+                      </span>
                     </div>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {item.step}
-                    </span>
-                  </div>
-                  <CardTitle className="text-base">{item.title}</CardTitle>
-                  <CardDescription className="leading-relaxed">
-                    {item.body}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link
-                    href={item.href}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    {item.cta}
-                    <ArrowRight className="size-3.5" />
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+                    <CardTitle className="text-base">{item.title}</CardTitle>
+                    <CardDescription className="leading-relaxed">
+                      {item.body}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link
+                      href={item.href}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      {item.cta}
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </main>
 
       <footer className="border-t border-border/80 py-6">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-4 text-center text-xs text-muted-foreground sm:flex-row sm:text-left">
           <p className="font-medium text-foreground/80">
-            CodeScan · print · scan · measure
+            CodeScan · research attribution
           </p>
           <p>
             {data.ok

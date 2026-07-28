@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { QrCode } from "lucide-react";
+import { Lock, QrCode } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,20 +23,32 @@ const initial: LoginState = {};
 function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
+  const needPassword = searchParams.get("need") === "password";
   const [state, formAction, pending] = useActionState(loginAction, initial);
 
   return (
     <Card className="w-full max-w-sm border-border/80 bg-card/95 shadow-lg">
       <CardHeader className="text-center">
         <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <QrCode className="size-5" />
+          <Lock className="size-5" />
         </div>
         <CardTitle>Admin login</CardTitle>
         <CardDescription>
-          Optional lock for dashboard. Public QR scans never need a password.
+          Dashboard, create QR, and print · scan · measure are private. Public
+          QR scans never need this password.
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {needPassword ? (
+          <p
+            className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200"
+            role="status"
+          >
+            Set{" "}
+            <code className="rounded bg-muted px-1">ADMIN_PASSWORD</code> in
+            Vercel environment variables, redeploy, then sign in here.
+          </p>
+        ) : null}
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="next" value={next} />
           <div className="space-y-2">
@@ -74,7 +86,12 @@ export default function LoginPage() {
   return (
     <main className="page-shell flex min-h-full flex-1 items-center justify-center px-4 py-16">
       <Suspense
-        fallback={<p className="text-sm text-muted-foreground">Loading…</p>}
+        fallback={
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <QrCode className="size-4 animate-pulse" />
+            Loading…
+          </div>
+        }
       >
         <LoginForm />
       </Suspense>
