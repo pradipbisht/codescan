@@ -1,3 +1,5 @@
+import "server-only";
+
 import { cookies } from "next/headers";
 
 export const ADMIN_COOKIE = "codescan_admin";
