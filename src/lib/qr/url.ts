@@ -116,27 +116,23 @@ async function getRequestOrigin(): Promise<string | null> {
 /**
  * Canonical public origin for QR images and scan links.
  *
- * Priority:
- * 1. NEXT_PUBLIC_APP_URL when it is a real custom domain (not *.vercel.app)
- * 2. Current request host when it is a custom / public domain (e.g. krodan.online)
- * 3. NEXT_PUBLIC_APP_URL even if *.vercel.app (last resort for previews)
- * 4. Request host / localhost for local dev
+ * Priority (print-safe):
+ * 1. Live request host when it is a real custom domain (e.g. krodan.online)
+ *    → whatever domain you open in the browser is what gets baked into the QR
+ * 2. NEXT_PUBLIC_APP_URL / APP_URL when it is a custom domain (not *.vercel.app)
+ * 3. Stale *.vercel.app env or request (preview only — yellow warning)
+ * 4. Localhost for dev
  *
- * Why this order: after you attach a custom domain, an old Vercel env value like
- * https://codescan-inky.vercel.app must not keep winning over the domain you
- * are actually browsing (and printing QRs for).
+ * Why request host wins: Vercel often still has NEXT_PUBLIC_APP_URL set to the
+ * old *.vercel.app project URL. That must never override a working custom domain.
  */
 export async function getAppUrl(): Promise<string> {
-  const fromEnvRaw = process.env.NEXT_PUBLIC_APP_URL;
+  const fromEnvRaw =
+    process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "";
   const fromEnv = fromEnvRaw ? sanitizeAppOrigin(fromEnvRaw) : null;
   const fromRequest = await getRequestOrigin();
 
-  // Explicit custom domain in env always wins
-  if (fromEnv && !isVercelAppHost(fromEnv)) {
-    return fromEnv;
-  }
-
-  // Live custom domain (user is on krodan.online) beats a stale *.vercel.app env
+  // 1) Browser is already on your custom domain → use that for scan URLs
   if (
     fromRequest &&
     !isLocalHost(fromRequest) &&
@@ -145,9 +141,13 @@ export async function getAppUrl(): Promise<string> {
     return fromRequest;
   }
 
-  // Fallback: env (may still be vercel.app on preview deploys)
-  if (fromEnv) return fromEnv;
+  // 2) Explicit custom domain from env (for local build of prod QRs, scripts)
+  if (fromEnv && !isVercelAppHost(fromEnv)) {
+    return fromEnv;
+  }
 
+  // 3) Last resort: vercel.app env / host (shows warning in UI)
+  if (fromEnv) return fromEnv;
   if (fromRequest) return fromRequest;
 
   return "http://localhost:3000";

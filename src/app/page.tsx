@@ -2,9 +2,9 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
-  Link2,
   Lock,
   QrCode,
+  ShieldCheck,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -29,7 +29,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Public homepage: aggregate totals only.
- * "Print · scan · measure" + admin CTAs only for password holders.
+ * Individual QR names, destinations, campaigns stay private (dashboard).
  */
 async function loadPublicTotals() {
   try {
@@ -66,12 +66,8 @@ export default async function Home() {
       <SiteHeader active="home" />
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-16">
-        {/* ── Hero ─────────────────────────────────────────────── */}
         <section className="relative overflow-hidden pt-10 sm:pt-14">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10"
-          >
+          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
             <div className="hero-glow absolute -left-24 top-0 size-72 rounded-full bg-sky-400/20 blur-3xl" />
             <div className="hero-glow absolute -right-16 top-10 size-80 rounded-full bg-violet-400/15 blur-3xl" />
             <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -84,20 +80,20 @@ export default async function Home() {
                   <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                   <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                 </span>
-                Offline print → online attribution
+                Live network · public totals only
               </p>
 
               <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl sm:leading-[1.1]">
-                Know which poster, paper, or hoarding{" "}
+                Print QR campaigns that{" "}
                 <span className="bg-gradient-to-r from-sky-700 via-violet-700 to-fuchsia-700 bg-clip-text text-transparent dark:from-sky-300 dark:via-violet-300 dark:to-fuchsia-300">
-                  actually drives visits
+                  measure real scans
                 </span>
               </h1>
 
               <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Trackable QR codes for print campaigns. Aggregate totals are
-                public; placement research and the print · scan · measure tools
-                stay behind admin login.
+                CodeScan tracks offline print → online visits. This page only
+                shows network totals. Placement names, destinations, and
+                research data stay behind admin login.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -137,19 +133,11 @@ export default async function Home() {
                 )}
               </div>
 
-              {/* Public totals only */}
+              {/* Public totals only — no individual QR details */}
               <div className="mt-10 grid grid-cols-3 gap-3">
                 {[
-                  {
-                    label: "QR codes",
-                    value: data.totalQr,
-                    icon: QrCode,
-                  },
-                  {
-                    label: "Active",
-                    value: data.activeCount,
-                    icon: Zap,
-                  },
+                  { label: "QR codes", value: data.totalQr, icon: QrCode },
+                  { label: "Active", value: data.activeCount, icon: Zap },
                   {
                     label: "Total scans",
                     value: data.totalScans,
@@ -182,14 +170,14 @@ export default async function Home() {
                 <CardHeader className="border-b border-border/60 pb-4">
                   <div className="flex items-center gap-3">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-950 text-white shadow-sm dark:from-zinc-100 dark:to-zinc-300 dark:text-zinc-900">
-                      <Sparkles className="size-4" />
+                      <ShieldCheck className="size-4" />
                     </span>
                     <div>
                       <CardTitle className="text-base">
-                        Private research tools
+                        Privacy-first public view
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Print · scan · measure requires admin password
+                        Totals only · no placement list
                       </CardDescription>
                     </div>
                   </div>
@@ -213,18 +201,27 @@ export default async function Home() {
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-dashed border-border px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-                    Public site shows totals only. Dashboard, create QR, and
-                    placement research stay locked for password holders.
-                  </div>
+
+                  <ul className="space-y-2 text-xs leading-relaxed text-muted-foreground">
+                    <li className="flex gap-2">
+                      <Sparkles className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
+                      Public: counts only (QR total, active, scans)
+                    </li>
+                    <li className="flex gap-2">
+                      <Lock className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                      Private: names, destinations, campaigns, download QR
+                    </li>
+                  </ul>
+
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                       Totals public
                     </span>
                     <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs">
-                      Tools private
+                      Research private
                     </span>
                   </div>
+
                   <Link
                     href={
                       showAdmin ? "/dashboard" : "/login?next=/dashboard"
@@ -242,7 +239,7 @@ export default async function Home() {
                     ) : (
                       <>
                         <Lock className="size-3.5" />
-                        Admin login
+                        Admin login for full tools
                       </>
                     )}
                   </Link>
@@ -252,7 +249,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ── Print · scan · measure — password holders only ── */}
+        {/* Print · scan · measure — password holders only */}
         {showAdmin ? (
           <section className="mt-16">
             <div className="mb-6">
@@ -263,7 +260,8 @@ export default async function Home() {
                 Print · scan · measure
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Only visible when you are logged in with the admin password.
+                Visible only when logged in. Public visitors never see this
+                section or individual QR details.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
@@ -272,15 +270,15 @@ export default async function Home() {
                   icon: QrCode,
                   step: "01",
                   title: "Create",
-                  body: "Name the placement, pick a channel, set any after-scan website. UTMs fill in for print.",
+                  body: "Name the placement, pick a channel, set any after-scan website.",
                   href: "/qr/new",
                   cta: "New QR",
                 },
                 {
-                  icon: Link2,
+                  icon: Zap,
                   step: "02",
                   title: "Print & place",
-                  body: "Download the PNG for newspapers, posters, pamphlets, or hoardings.",
+                  body: "Download PNG for newspapers, posters, pamphlets, or hoardings.",
                   href: "/dashboard",
                   cta: "Your QRs",
                 },
@@ -288,7 +286,7 @@ export default async function Home() {
                   icon: BarChart3,
                   step: "03",
                   title: "Measure privately",
-                  body: "Each scan increments the right QR. Detailed performance stays on your dashboard.",
+                  body: "Filter and sort every QR. Live scan counts stay on your dashboard.",
                   href: "/dashboard",
                   cta: "Dashboard",
                 },
@@ -324,7 +322,29 @@ export default async function Home() {
               ))}
             </div>
           </section>
-        ) : null}
+        ) : (
+          <section className="mt-16">
+            <Card className="border-dashed border-border/80 bg-card/50">
+              <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+                <Lock className="size-8 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Admin tools are locked</p>
+                  <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                    Dashboard, create QR, and placement research require a
+                    password. You only see the totals above.
+                  </p>
+                </div>
+                <Link
+                  href="/login?next=/dashboard"
+                  className={cn(buttonVariants({ size: "sm" }))}
+                >
+                  <Lock className="size-3.5" />
+                  Admin login
+                </Link>
+              </CardContent>
+            </Card>
+          </section>
+        )}
       </main>
 
       <footer className="border-t border-border/80 py-6">
@@ -334,7 +354,7 @@ export default async function Home() {
           </p>
           <p>
             {data.ok
-              ? `${data.totalQr.toLocaleString()} placements · ${data.totalScans.toLocaleString()} scans`
+              ? `${data.totalQr.toLocaleString()} placements · ${data.totalScans.toLocaleString()} scans (totals only)`
               : "Offline QR attribution"}
           </p>
         </div>

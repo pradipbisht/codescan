@@ -242,11 +242,16 @@ export default async function QrDetailPage({ params }: PageProps) {
               Scan URL still uses a Vercel default domain
             </p>
             <p className="mt-2 leading-relaxed text-muted-foreground">
-              Your site may already open on a custom domain (e.g.{" "}
+              You are browsing a custom host, but production still builds scan
+              links from a stale{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                krodan.online
+                *.vercel.app
+              </code>{" "}
+              value (often{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                codescan-inky.vercel.app
               </code>
-              ), but QR links still use the old host until env is fixed.
+              ). That old host is dead — phones will fail until this is fixed.
             </p>
             <ol className="mt-3 list-inside list-decimal space-y-1.5 text-muted-foreground">
               <li>
@@ -254,26 +259,35 @@ export default async function QrDetailPage({ params }: PageProps) {
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                   krodan.online
                 </code>{" "}
-                (or your domain) is connected and valid
+                is <strong>Valid</strong>
               </li>
               <li>
-                Settings → Environment Variables → set{" "}
+                Settings → Environment Variables →{" "}
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                   NEXT_PUBLIC_APP_URL
-                </code>{" "}
-                value to only{" "}
+                </code>
+              </li>
+              <li>
+                Set <strong>value only</strong> to{" "}
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                   https://krodan.online
                 </code>{" "}
-                (no quotes, no variable name) for Production
-              </li>
-              <li>Redeploy the project (Deployments → ⋯ → Redeploy)</li>
-              <li>
-                Refresh this page and re-download the QR PNG — old{" "}
+                (no quotes, no{" "}
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                  *.vercel.app
+                  NEXT_PUBLIC_APP_URL=
                 </code>{" "}
-                PNGs stay broken forever
+                prefix) for <strong>Production</strong>
+              </li>
+              <li>
+                Deployments → latest → ⋯ → <strong>Redeploy</strong> (required —
+                env is baked at build)
+              </li>
+              <li>
+                Hard-refresh this page (Ctrl+Shift+R), confirm scan URL is{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  https://krodan.online/r/…
+                </code>
+                , then re-download the PNG
               </li>
             </ol>
             <p className="mt-2 text-xs text-muted-foreground">

@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { BarChart3, QrCode, Radio, Sparkles } from "lucide-react";
+import {
+  ArrowDownWideNarrow,
+  BarChart3,
+  QrCode,
+  Radio,
+  Search,
+  Sparkles,
+} from "lucide-react";
 
 import { logoutAction } from "@/app/login/actions";
 import { DeleteQrButton } from "@/app/qr/[id]/delete-button";
@@ -26,7 +33,27 @@ type SearchParams = Promise<{
   campaign?: string;
   active?: string;
   q?: string;
+  sort?: string;
 }>;
+
+type SortKey =
+  | "newest"
+  | "oldest"
+  | "scans_desc"
+  | "scans_asc"
+  | "label_asc"
+  | "label_desc"
+  | "last_scan";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "scans_desc", label: "Most scans" },
+  { value: "scans_asc", label: "Least scans" },
+  { value: "last_scan", label: "Last scanned" },
+  { value: "label_asc", label: "Name A–Z" },
+  { value: "label_desc", label: "Name Z–A" },
+];
 
 function formatWhen(date: Date | null) {
   if (!date) return "Never";
@@ -34,6 +61,45 @@ function formatWhen(date: Date | null) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function parseSort(raw: string | undefined): SortKey {
+  const v = (raw || "newest").trim() as SortKey;
+  return SORT_OPTIONS.some((o) => o.value === v) ? v : "newest";
+}
+
+function sortCodes<
+  T extends {
+    createdAt: Date;
+    scanCount: number;
+    label: string;
+    lastScannedAt: Date | null;
+  },
+>(list: T[], sort: SortKey): T[] {
+  const copy = [...list];
+  copy.sort((a, b) => {
+    switch (sort) {
+      case "oldest":
+        return a.createdAt.getTime() - b.createdAt.getTime();
+      case "scans_desc":
+        return b.scanCount - a.scanCount || b.createdAt.getTime() - a.createdAt.getTime();
+      case "scans_asc":
+        return a.scanCount - b.scanCount || b.createdAt.getTime() - a.createdAt.getTime();
+      case "label_asc":
+        return a.label.localeCompare(b.label);
+      case "label_desc":
+        return b.label.localeCompare(a.label);
+      case "last_scan": {
+        const at = a.lastScannedAt?.getTime() ?? 0;
+        const bt = b.lastScannedAt?.getTime() ?? 0;
+        return bt - at || b.scanCount - a.scanCount;
+      }
+      case "newest":
+      default:
+        return b.createdAt.getTime() - a.createdAt.getTime();
+    }
+  });
+  return copy;
 }
 
 export default async function DashboardPage({
@@ -46,6 +112,7 @@ export default async function DashboardPage({
   const campaignFilter = params.campaign?.trim() || "";
   const activeFilter = params.active?.trim() || "";
   const search = params.q?.trim().toLowerCase() || "";
+  const sort = parseSort(params.sort);
 
   const allCodes = await prisma.qrCode.findMany({
     orderBy: { createdAt: "desc" },
@@ -62,17 +129,20 @@ export default async function DashboardPage({
     )
   ).sort();
 
-  const codes = allCodes.filter((q) => {
+  const filtered = allCodes.filter((q) => {
     if (channelFilter && q.channel !== channelFilter) return false;
     if (campaignFilter && (q.campaign ?? "") !== campaignFilter) return false;
     if (activeFilter === "yes" && !q.isActive) return false;
     if (activeFilter === "no" && q.isActive) return false;
     if (search) {
-      const hay = `${q.label} ${q.channel} ${q.location ?? ""} ${q.campaign ?? ""}`.toLowerCase();
+      const hay =
+        `${q.label} ${q.channel} ${q.location ?? ""} ${q.campaign ?? ""} ${q.destinationPath ?? ""}`.toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
   });
+
+  const codes = sortCodes(filtered, sort);
 
   const totalScansAll = allCodes.reduce((sum, q) => sum + q.scanCount, 0);
   const totalScansFiltered = codes.reduce((sum, q) => sum + q.scanCount, 0);
@@ -87,7 +157,7 @@ export default async function DashboardPage({
   )[0];
 
   const hasFilters = Boolean(
-    channelFilter || campaignFilter || activeFilter || search
+    channelFilter || campaignFilter || activeFilter || search || sort !== "newest"
   );
 
   return (
@@ -102,15 +172,16 @@ export default async function DashboardPage({
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                 <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
               </span>
-              Live dashboard
+              Live dashboard · private
             </p>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Placement performance
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Each card is one printed QR.{" "}
+              Filter and sort every QR.{" "}
               <strong className="text-foreground">Scans</strong> update live —
-              no full page refresh.
+              no full page refresh. Public visitors only see totals on the home
+              page.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -201,9 +272,7 @@ export default async function DashboardPage({
                 <Radio className="size-4 text-muted-foreground" />
               </div>
               <CardTitle className="truncate text-2xl capitalize">
-                {topChannelEntry
-                  ? channelLabel(topChannelEntry[0])
-                  : "—"}
+                {topChannelEntry ? channelLabel(topChannelEntry[0]) : "—"}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">
@@ -214,8 +283,27 @@ export default async function DashboardPage({
           </Card>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6 bg-card shadow-sm">
+        {/* Filters + sort */}
+        <Card className="mb-6 overflow-hidden border-border/80 bg-card/95 shadow-sm">
+          <CardHeader className="border-b border-border/60 pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Search className="size-4" />
+                </span>
+                <div>
+                  <CardTitle className="text-base">Filter &amp; sort</CardTitle>
+                  <CardDescription className="text-xs">
+                    Search, channel, campaign, status, and order
+                  </CardDescription>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                <ArrowDownWideNarrow className="size-3.5" />
+                {codes.length} / {allCodes.length} shown
+              </span>
+            </div>
+          </CardHeader>
           <CardContent className="pt-(--card-spacing)">
             <form
               method="get"
@@ -226,8 +314,8 @@ export default async function DashboardPage({
                 <span className="text-muted-foreground">Search</span>
                 <input
                   name="q"
-                  defaultValue={search}
-                  placeholder="Name, channel, campaign…"
+                  defaultValue={params.q?.trim() || ""}
+                  placeholder="Name, channel, campaign, destination…"
                   className="block h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 />
               </label>
@@ -274,6 +362,21 @@ export default async function DashboardPage({
                   <option value="">Any</option>
                   <option value="yes">Active</option>
                   <option value="no">Disabled</option>
+                </select>
+              </label>
+
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">Sort by</span>
+                <select
+                  name="sort"
+                  defaultValue={sort}
+                  className="block h-9 min-w-40 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -324,97 +427,99 @@ export default async function DashboardPage({
             </CardContent>
           </Card>
         ) : (
-          <>
-            {/* Mobile / tablet cards */}
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {codes.map((q) => (
-                <Card
-                  key={q.id}
-                  className={cn(
-                    "bg-card shadow-sm transition-shadow hover:shadow-md",
-                    !q.isActive && "opacity-75"
-                  )}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {codes.map((q, index) => (
+              <Card
+                key={q.id}
+                className={cn(
+                  "group border-border/80 bg-card/95 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                  !q.isActive && "opacity-75"
+                )}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          #{index + 1}
+                        </span>
                         <CardTitle className="truncate text-base">
                           {q.label}
                         </CardTitle>
-                        <CardDescription className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
-                            {channelLabel(q.channel)}
+                      </div>
+                      <CardDescription className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs capitalize">
+                          {channelLabel(q.channel)}
+                        </span>
+                        {q.isActive ? (
+                          <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-400">
+                            Active
                           </span>
-                          {q.isActive ? (
-                            <span className="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-400">
-                              Active
-                            </span>
-                          ) : (
-                            <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                              Disabled
-                            </span>
-                          )}
-                        </CardDescription>
-                      </div>
-                      <div className="rounded-lg bg-primary/10 px-2.5 py-1 text-center">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                          Scans
-                        </p>
-                        <p
-                          className="text-xl font-semibold tabular-nums leading-none"
-                          data-live-count={q.id}
-                        >
-                          {q.scanCount}
-                        </p>
-                      </div>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            Disabled
+                          </span>
+                        )}
+                      </CardDescription>
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm">
-                    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                      <dt className="text-muted-foreground">Campaign</dt>
-                      <dd className="truncate">{q.campaign ?? "—"}</dd>
-                      <dt className="text-muted-foreground">Location</dt>
-                      <dd className="truncate">{q.location ?? "—"}</dd>
-                      <dt className="text-muted-foreground">Last scan</dt>
-                      <dd data-live-last={q.id}>
-                        {formatWhen(q.lastScannedAt)}
-                      </dd>
-                      <dt className="text-muted-foreground">UTM</dt>
-                      <dd className="truncate font-mono">
-                        {q.utmSource ?? "—"} / {q.utmMedium ?? "—"}
-                      </dd>
-                    </dl>
+                    <div className="rounded-xl bg-gradient-to-br from-sky-500/15 to-violet-500/15 px-2.5 py-1.5 text-center ring-1 ring-border/60">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Scans
+                      </p>
+                      <p
+                        className="text-xl font-semibold tabular-nums leading-none"
+                        data-live-count={q.id}
+                      >
+                        {q.scanCount}
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                    <dt className="text-muted-foreground">Campaign</dt>
+                    <dd className="truncate">{q.campaign ?? "—"}</dd>
+                    <dt className="text-muted-foreground">Location</dt>
+                    <dd className="truncate">{q.location ?? "—"}</dd>
+                    <dt className="text-muted-foreground">Last scan</dt>
+                    <dd data-live-last={q.id}>
+                      {formatWhen(q.lastScannedAt)}
+                    </dd>
+                    <dt className="text-muted-foreground">UTM</dt>
+                    <dd className="truncate font-mono">
+                      {q.utmSource ?? "—"} / {q.utmMedium ?? "—"}
+                    </dd>
+                  </dl>
 
-                    <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-                      <Link
-                        href={`/qr/${q.id}`}
-                        className={cn(
-                          buttonVariants({ size: "sm" }),
-                          "flex-1 sm:flex-none"
-                        )}
-                      >
-                        Open / QR
-                      </Link>
-                      <Link
-                        href={`/qr/${q.id}/edit`}
-                        className={cn(
-                          buttonVariants({ variant: "outline", size: "sm" })
-                        )}
-                      >
-                        Edit
-                      </Link>
-                      <DeleteQrButton
-                        id={q.id}
-                        label={q.label}
-                        variant="ghost"
-                        size="sm"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </>
+                  <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                    <Link
+                      href={`/qr/${q.id}`}
+                      className={cn(
+                        buttonVariants({ size: "sm" }),
+                        "flex-1 sm:flex-none"
+                      )}
+                    >
+                      Open / QR
+                    </Link>
+                    <Link
+                      href={`/qr/${q.id}/edit`}
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" })
+                      )}
+                    >
+                      Edit
+                    </Link>
+                    <DeleteQrButton
+                      id={q.id}
+                      label={q.label}
+                      variant="ghost"
+                      size="sm"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </main>
     </div>
