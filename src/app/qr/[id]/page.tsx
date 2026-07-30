@@ -199,9 +199,9 @@ export default async function QrDetailPage({ params }: PageProps) {
               <li>
                 Right:{" "}
                 <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                  https://codescan-inky.vercel.app
+                  https://krodan.online
                 </code>{" "}
-                (or your custom domain)
+                (your custom domain only)
               </li>
             </ul>
             <p className="mt-2 leading-relaxed text-muted-foreground">
@@ -225,7 +225,7 @@ export default async function QrDetailPage({ params }: PageProps) {
               </code>{" "}
               to your public HTTPS domain (e.g.{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                https://go.goalkeepers.org.in
+                https://krodan.online
               </code>
               ), deploy, then create/download QRs again. Old localhost PNGs will
               never work on other devices.
@@ -242,17 +242,40 @@ export default async function QrDetailPage({ params }: PageProps) {
               Scan URL still uses a Vercel default domain
             </p>
             <p className="mt-2 leading-relaxed text-muted-foreground">
-              Add a custom domain in Vercel (e.g.{" "}
+              Your site may already open on a custom domain (e.g.{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                go.goalkeepers.org.in
+                krodan.online
               </code>
-              ), set{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                NEXT_PUBLIC_APP_URL=https://go.goalkeepers.org.in
-              </code>{" "}
-              on the project, redeploy, then re-download this QR so the image
-              encodes your brand domain. Tracking still works either way.
+              ), but QR links still use the old host until env is fixed.
             </p>
+            <ol className="mt-3 list-inside list-decimal space-y-1.5 text-muted-foreground">
+              <li>
+                Vercel → Project → Settings → Domains → confirm{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  krodan.online
+                </code>{" "}
+                (or your domain) is connected and valid
+              </li>
+              <li>
+                Settings → Environment Variables → set{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  NEXT_PUBLIC_APP_URL
+                </code>{" "}
+                value to only{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  https://krodan.online
+                </code>{" "}
+                (no quotes, no variable name) for Production
+              </li>
+              <li>Redeploy the project (Deployments → ⋯ → Redeploy)</li>
+              <li>
+                Refresh this page and re-download the QR PNG — old{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                  *.vercel.app
+                </code>{" "}
+                PNGs stay broken forever
+              </li>
+            </ol>
             <p className="mt-2 text-xs text-muted-foreground">
               Current public base:{" "}
               <span className="font-mono text-foreground">{appUrl}</span>

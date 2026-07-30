@@ -86,39 +86,69 @@ export function sanitizeAppOrigin(raw: string): string | null {
 }
 
 /**
- * Canonical public origin for QR images and scan links.
- *
- * Priority:
- * 1. NEXT_PUBLIC_APP_URL (custom domain preferred — not *.vercel.app for print)
- * 2. Current request host when not localhost
- * 3. Localhost fallback for dev
+ * Read the public host of the current request (e.g. krodan.online).
+ * Used when NEXT_PUBLIC_APP_URL is missing or still a stale *.vercel.app value.
  */
-export async function getAppUrl(): Promise<string> {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL;
-  if (fromEnv) {
-    const cleaned = sanitizeAppOrigin(fromEnv);
-    if (cleaned) return cleaned;
-  }
-
+async function getRequestOrigin(): Promise<string | null> {
   try {
     const h = await headers();
     const host = (h.get("x-forwarded-host") || h.get("host") || "").trim();
+    if (!host) return null;
+
     const protoHeader = (h.get("x-forwarded-proto") || "")
       .split(",")[0]
       ?.trim();
 
-    if (host && !isLocalHost(host)) {
-      const proto = protoHeader === "http" ? "https" : protoHeader || "https";
-      return stripSlash(`${proto}://${host}`);
-    }
-
-    if (host) {
+    if (isLocalHost(host)) {
       const proto = protoHeader || "http";
       return stripSlash(`${proto}://${host}`);
     }
+
+    // Prefer https for public hosts (Vercel terminates TLS; proto may be https)
+    const proto = protoHeader === "http" ? "https" : protoHeader || "https";
+    return stripSlash(`${proto}://${host}`);
   } catch {
     // outside request (build / scripts)
+    return null;
   }
+}
+
+/**
+ * Canonical public origin for QR images and scan links.
+ *
+ * Priority:
+ * 1. NEXT_PUBLIC_APP_URL when it is a real custom domain (not *.vercel.app)
+ * 2. Current request host when it is a custom / public domain (e.g. krodan.online)
+ * 3. NEXT_PUBLIC_APP_URL even if *.vercel.app (last resort for previews)
+ * 4. Request host / localhost for local dev
+ *
+ * Why this order: after you attach a custom domain, an old Vercel env value like
+ * https://codescan-inky.vercel.app must not keep winning over the domain you
+ * are actually browsing (and printing QRs for).
+ */
+export async function getAppUrl(): Promise<string> {
+  const fromEnvRaw = process.env.NEXT_PUBLIC_APP_URL;
+  const fromEnv = fromEnvRaw ? sanitizeAppOrigin(fromEnvRaw) : null;
+  const fromRequest = await getRequestOrigin();
+
+  // Explicit custom domain in env always wins
+  if (fromEnv && !isVercelAppHost(fromEnv)) {
+    return fromEnv;
+  }
+
+  // Live custom domain (user is on krodan.online) beats a stale *.vercel.app env
+  if (
+    fromRequest &&
+    !isLocalHost(fromRequest) &&
+    !isVercelAppHost(fromRequest)
+  ) {
+    return fromRequest;
+  }
+
+  // Fallback: env (may still be vercel.app on preview deploys)
+  if (fromEnv) return fromEnv;
+
+  if (fromRequest) return fromRequest;
 
   return "http://localhost:3000";
 }
