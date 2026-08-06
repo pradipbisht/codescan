@@ -1,51 +1,80 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db/prisma";
 
+/** Rows per page on QR detail scan history */
+export const SCAN_PAGE_SIZE = 12;
+
 /**
- * Lightweight live stats for auto-refresh UI (no full page reload).
- * Poll from client every few seconds.
+ * Live stats + paginated scan history for auto-refresh UI.
+ * Query: ?page=1 (1-based). Page size is fixed at 12.
+ * Pagination controls are only needed when total > 12.
  */
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
 
-  const qr = await prisma.qrCode.findUnique({
+  const rawPage = Number(request.nextUrl.searchParams.get("page") || "1");
+  const requestedPage =
+    Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
+  const pageSize = SCAN_PAGE_SIZE;
+
+  const meta = await prisma.qrCode.findUnique({
     where: { id },
     select: {
       id: true,
       scanCount: true,
       lastScannedAt: true,
       isActive: true,
-      scans: {
-        orderBy: { scannedAt: "desc" },
-        take: 12,
-        select: {
-          id: true,
-          scannedAt: true,
-          userAgent: true,
-        },
-      },
+      _count: { select: { scans: true } },
     },
   });
 
-  if (!qr) {
+  if (!meta) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  const total = meta._count.scans;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+  const page = Math.min(requestedPage, totalPages);
+  const skip = (page - 1) * pageSize;
+
+  const scans =
+    total === 0
+      ? []
+      : await prisma.qrScan.findMany({
+          where: { qrCodeId: id },
+          orderBy: { scannedAt: "desc" },
+          skip,
+          take: pageSize,
+          select: {
+            id: true,
+            scannedAt: true,
+            userAgent: true,
+          },
+        });
+
+  const needsPagination = total > pageSize;
+
   return NextResponse.json(
     {
-      id: qr.id,
-      scanCount: qr.scanCount,
-      lastScannedAt: qr.lastScannedAt?.toISOString() ?? null,
-      isActive: qr.isActive,
-      scans: qr.scans.map((s) => ({
+      id: meta.id,
+      scanCount: meta.scanCount,
+      lastScannedAt: meta.lastScannedAt?.toISOString() ?? null,
+      isActive: meta.isActive,
+      scans: scans.map((s) => ({
         id: s.id,
         scannedAt: s.scannedAt.toISOString(),
         userAgent: s.userAgent,
       })),
+      page,
+      pageSize,
+      total,
+      totalPages,
+      hasPrev: needsPagination && page > 1,
+      hasNext: needsPagination && page < totalPages,
     },
     {
       headers: {

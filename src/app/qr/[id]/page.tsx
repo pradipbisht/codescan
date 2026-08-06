@@ -78,8 +78,9 @@ export default async function QrDetailPage({ params }: PageProps) {
     include: {
       scans: {
         orderBy: { scannedAt: "desc" },
-        take: 12,
+        take: 12, // page 1 only; LiveStats paginates the rest
       },
+      _count: { select: { scans: true } },
     },
   });
   if (!qr) notFound();
@@ -449,6 +450,8 @@ export default async function QrDetailPage({ params }: PageProps) {
             qrId={qr.id}
             initialCount={qr.scanCount}
             initialLastScanned={qr.lastScannedAt?.toISOString() ?? null}
+            initialIsActive={qr.isActive}
+            initialTotal={qr._count.scans}
             initialScans={qr.scans.map((s) => ({
               id: s.id,
               scannedAt: s.scannedAt.toISOString(),
